@@ -79,5 +79,6 @@ export const Api = {
   listUsers: () => api<Array<{ id: string; email: string; name: string; role: "ADMIN" | "EDITOR" | "VIEWER"; avatarUrl: string | null; createdAt: string }>>("/api/users"),
   updateUserRole: (id: string, role: "ADMIN" | "EDITOR" | "VIEWER") =>
     api<{ id: string; role: "ADMIN" | "EDITOR" | "VIEWER" }>(`/api/users/${id}`, { method: "PATCH", body: JSON.stringify({ role }) }),
-  listAudit: (limit = 200) => api<import("@/types").AuditLogEntry[]>(`/api/audit?limit=${limit}`),
+  listAudit: (page = 1, pageSize = 15) =>
+    api<import("@/types").AuditLogPage>(`/api/audit?page=${page}&pageSize=${pageSize}`),
 };

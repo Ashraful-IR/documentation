@@ -61,7 +61,7 @@ function LoginForm() {
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
-      <div className="space-y-1">
+      <div className="space-y-1 flex flex-col justify-between items-center">
         <h1 className="text-xl font-semibold tracking-tight">Sign in</h1>
         <p className="text-sm text-muted-foreground">Continue to your documentation workspace.</p>
       </div>

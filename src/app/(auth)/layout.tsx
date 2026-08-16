@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { BookOpen } from "lucide-react";
+import { BrandMark } from "@/components/layout/BrandMark";
 import { getSessionUser } from "@/lib/auth/actor";
 
 export const dynamic = "force-dynamic";
@@ -13,15 +13,24 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
   if (user) redirect("/documentation");
 
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center bg-zinc-50 px-4 dark:bg-zinc-950">
-      <div className="mb-6 flex items-center gap-2">
-        <div className="flex size-8 items-center justify-center rounded-lg bg-zinc-900 text-zinc-50 dark:bg-zinc-100 dark:text-zinc-900">
-          <BookOpen className="size-4" />
-        </div>
-        <span className="text-sm font-semibold tracking-tight">Documentation Platform</span>
+    <div className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden px-4 py-12">
+      {/* Ambient atmosphere behind the card */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute left-1/2 top-[-160px] h-[360px] w-[560px] -translate-x-1/2 rounded-full bg-purple-primary/15 blur-[120px]" />
+        <div className="absolute bottom-[-140px] right-[10%] h-[300px] w-[300px] rounded-full bg-gp-green/10 blur-[110px]" />
       </div>
-      <div className="w-full max-w-sm rounded-xl border bg-white p-6 shadow-sm dark:bg-zinc-900 dark:border-zinc-800">
-        {children}
+
+      <div className="relative w-full max-w-sm">
+        <div className="mb-6 flex flex-col items-center justify-center gap-2.5">
+          <BrandMark size="md" />
+          <span className="text-4xl font-semibold tracking-tight text-text-primary">Cockpit GLM</span>
+        </div>
+        <div className="rounded-2xl border border-white/8 bg-surface/80 p-6 shadow-[0_16px_60px_rgba(0,0,0,0.4)] backdrop-blur-sm">
+          {children}
+        </div>
+        <p className="mt-6 text-center font-mono text-xs text-text-disabled">
+          Local-first · No cloud required
+        </p>
       </div>
     </div>
   );

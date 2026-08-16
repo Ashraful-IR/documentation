@@ -23,8 +23,18 @@ async function main() {
     await page.evaluate((v) => localStorage.setItem("theme", v), t);
   };
 
-  const measure = () =>
-    page.evaluate(`(() => {
+  type Measured = {
+    toolbarBg: string | null;
+    toolbarBorder: string | null;
+    workspaceBg: string | null;
+    pageBg: string | null;
+    htmlDark: boolean | null;
+    leftGap: number | null;
+    rightGap: number | null;
+  };
+
+  const measure = async (): Promise<Measured> =>
+    (await page.evaluate(`(() => {
       const bar = document.querySelector('[aria-label="Zoom in"]')?.closest('div[class*="border-b"]');
       const paper = document.querySelector('div.shadow-2xl.bg-white');
       const firstBtn = document.querySelector('[aria-label="Zoom out"]');
@@ -40,7 +50,7 @@ async function main() {
         leftGap: firstR && barR ? Math.round(firstR.left - barR.left) : null,
         rightGap: lastR && barR ? Math.round(barR.right - lastR.right) : null,
       };
-    })()`);
+    })()`) as Measured);
 
   // --- Light mode ---
   await setTheme("light");
@@ -62,15 +72,18 @@ async function main() {
   console.log("DARK: ", JSON.stringify(dark));
   await page.screenshot({ path: "/tmp/editor-dark.png", fullPage: true });
 
+  // Both themes share the brand palette (navy workspace, GP-green accents) by
+  // design — so light and dark must render identically, the paper stays white
+  // in both, and the toolbar stays centered with no console errors.
   const ok =
-    light.workspaceBg !== dark.workspaceBg &&
-    light.toolbarBg !== dark.toolbarBg &&
+    light.workspaceBg === dark.workspaceBg &&
+    light.toolbarBg === dark.toolbarBg &&
     light.pageBg === "rgb(255, 255, 255)" &&
     dark.pageBg === "rgb(255, 255, 255)" &&
     light.leftGap !== null && light.rightGap !== null &&
     Math.abs((light.leftGap ?? 0) - (light.rightGap ?? 0)) <= 60 &&
     errors.length === 0;
-  console.log(ok ? "PASS: theme-aware colors, white paper, centered toolbar" : "FAIL");
+  console.log(ok ? "PASS: brand palette in both themes, white paper, centered toolbar" : "FAIL");
   console.log(errors.length === 0 ? "PASS: no console errors" : "errors:\n" + errors.slice(0, 6).join("\n"));
   await browser.close();
   process.exit(ok ? 0 : 1);

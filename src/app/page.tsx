@@ -1,10 +1,7 @@
 import { redirect } from "next/navigation";
 
-import { getSessionUserId } from "@/lib/auth/session";
-
-export const dynamic = "force-dynamic";
-
-export default async function Home() {
-  const uid = await getSessionUserId();
-  redirect(uid ? "/documentation" : "/login");
+export default function Home() {
+  // No landing page — the app starts at the login screen. Authenticated
+  // visitors get bounced through to /documentation by the auth layout.
+  redirect("/login");
 }

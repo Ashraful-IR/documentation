@@ -1,8 +1,9 @@
-import { desc, eq } from "drizzle-orm";
+import { count, desc, eq } from "drizzle-orm";
 
 import { db } from "@/db";
 import { auditLogs, users } from "@/db/schema";
 import { requirePermission, type Actor } from "@/lib/auth/permissions";
+import type { AuditLogPage } from "@/types";
 
 export const AUDIT_ACTIONS = {
   DOCUMENT_CREATED: "DOCUMENT_CREATED",
@@ -41,8 +42,17 @@ export async function logAudit(actor: { id: string } | null, event: AuditEvent):
   }
 }
 
-export async function listAuditLogs(actor: Actor, limit = 100) {
+/**
+ * Lists audit entries, newest first, one page at a time.
+ * Defaults to 15 rows per page; pageSize is capped at 100.
+ */
+export async function listAuditLogs(actor: Actor, page = 1, pageSize = 15): Promise<AuditLogPage> {
   requirePermission(actor, "audit.view");
+  const safePage = Math.max(1, Math.floor(page) || 1);
+  const safePageSize = Math.min(Math.max(1, Math.floor(pageSize) || 1), 100);
+  const offset = (safePage - 1) * safePageSize;
+
+  const [{ total }] = await db.select({ total: count() }).from(auditLogs);
   const rows = await db
     .select({
       id: auditLogs.id,
@@ -58,14 +68,22 @@ export async function listAuditLogs(actor: Actor, limit = 100) {
     .from(auditLogs)
     .leftJoin(users, eq(auditLogs.userId, users.id))
     .orderBy(desc(auditLogs.createdAt))
-    .limit(Math.min(limit, 500));
-  return rows.map((r) => ({
-    id: r.id,
-    action: r.action,
-    entityType: r.entityType,
-    entityId: r.entityId,
-    metadata: r.metadata,
-    createdAt: r.createdAt.toISOString(),
-    user: r.userId ? { id: r.userId, name: r.userName!, email: r.userEmail! } : null,
-  }));
+    .limit(safePageSize)
+    .offset(offset);
+
+  return {
+    items: rows.map((r) => ({
+      id: r.id,
+      action: r.action,
+      entityType: r.entityType,
+      entityId: r.entityId,
+      metadata: r.metadata,
+      createdAt: r.createdAt.toISOString(),
+      user: r.userId ? { id: r.userId, name: r.userName!, email: r.userEmail! } : null,
+    })),
+    page: safePage,
+    pageSize: safePageSize,
+    total,
+    totalPages: Math.max(1, Math.ceil(total / safePageSize)),
+  };
 }

@@ -1,6 +1,7 @@
-import { BookOpen, ExternalLink, FileText, Folder } from "lucide-react";
+import { ExternalLink, FileText, Folder } from "lucide-react";
 import Link from "next/link";
 
+import { BrandMark } from "@/components/layout/BrandMark";
 import { getSessionUser } from "@/lib/auth/actor";
 import { getTree } from "@/services/navigation.service";
 
@@ -14,9 +15,7 @@ export default async function DocumentationLanding() {
   return (
     <div className="mx-auto w-full max-w-3xl px-8 py-14">
       <div className="mb-8 flex items-center gap-3">
-        <div className="flex size-10 items-center justify-center rounded-xl bg-zinc-900 text-zinc-50 dark:bg-zinc-100 dark:text-zinc-900">
-          <BookOpen className="size-5" />
-        </div>
+        <BrandMark size="lg" />
         <div>
           <h1 className="text-xl font-semibold tracking-tight">Documentation</h1>
           <p className="text-sm text-muted-foreground">

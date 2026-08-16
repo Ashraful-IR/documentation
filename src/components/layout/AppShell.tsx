@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BookOpen, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { BrandMark } from "@/components/layout/BrandMark";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 
@@ -68,12 +69,10 @@ export function AppShell({ user, children }: { user: SessionUser; children: Reac
   return (
     <div className="flex h-dvh flex-col">
       {/* Top bar — no sidebar toggle here */}
-      <header className="flex h-12 shrink-0 items-center gap-2 border-b px-3 sm:px-4">
-        <Link href="/documentation" className="flex items-center gap-2">
-          <div className="flex size-7 items-center justify-center rounded-lg bg-zinc-900 text-zinc-50 dark:bg-zinc-100 dark:text-zinc-900">
-            <BookOpen className="size-3.5" />
-          </div>
-          <span className="hidden text-sm font-semibold tracking-tight md:inline">Documentation</span>
+      <header className="flex h-12 shrink-0 items-center gap-2 border-b bg-background/60 px-3 backdrop-blur-sm sm:px-4">
+        <Link href="/documentation" aria-label="Cockpit GLM home" className="flex items-center gap-2">
+          <BrandMark size="sm" />
+          <span className="hidden text-sm font-semibold tracking-tight text-text-primary md:inline">Cockpit GLM</span>
         </Link>
         <div className="flex-1" />
         <SearchCommand />

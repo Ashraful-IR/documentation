@@ -14,8 +14,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Documentation Platform",
-  description: "Local-first documentation workspace",
+  title: {
+    default: "Documentatiotform",
+    template: "%s · Documentation Platform",
+  },
+  description:
+    "A premium, local-first documentation workspace: structured navigation, a rich editor, and versioned publishing — running entirely on your machine.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

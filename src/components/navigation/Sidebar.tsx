@@ -351,12 +351,15 @@ function SortableRow({
           e.stopPropagation();
           onNavigate();
         }}
-        className={`group/node flex cursor-pointer select-none items-center gap-1 rounded-md px-1.5 py-1 text-sm ${
+        className={`group/node relative flex cursor-pointer select-none items-center gap-1 rounded-md px-1.5 py-1 text-sm ${
           isActive ? "opacity-40" : ""
         } ${isOver ? "ring-1 ring-inset ring-ring" : ""} ${
           isCurrentPath ? "bg-accent font-medium text-accent-foreground" : "text-foreground/80 hover:bg-accent/60"
         } ${item.effectivelyHidden ? "italic opacity-50" : ""}`}
       >
+        {isCurrentPath && (
+          <span className="absolute left-0 top-1/2 h-3.5 w-[3px] -translate-y-1/2 rounded-r-full bg-gp-green" />
+        )}
         {item.hasChildren ? (
           <button
             className="flex size-4 shrink-0 items-center justify-center rounded-sm text-muted-foreground hover:bg-accent"

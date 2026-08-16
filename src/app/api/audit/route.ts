@@ -7,8 +7,9 @@ import * as auditService from "@/services/audit.service";
 export async function GET(req: NextRequest) {
   try {
     const actor = await requireActor();
-    const limit = Number(req.nextUrl.searchParams.get("limit") ?? 100);
-    return ok(await auditService.listAuditLogs(actor, limit));
+    const page = Number(req.nextUrl.searchParams.get("page") ?? 1);
+    const pageSize = Number(req.nextUrl.searchParams.get("pageSize") ?? 15);
+    return ok(await auditService.listAuditLogs(actor, page, pageSize));
   } catch (err) {
     return handleError(err);
   }

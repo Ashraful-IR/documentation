@@ -60,6 +60,15 @@ export interface AuditLogEntry {
   user: { id: string; name: string; email: string } | null;
 }
 
+/** One page of audit entries, newest first. */
+export interface AuditLogPage {
+  items: AuditLogEntry[];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+}
+
 export interface SearchResult {
   type: "document" | "navigation";
   id: string;

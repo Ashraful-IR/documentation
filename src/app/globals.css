@@ -7,9 +7,25 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+  --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-heading: var(--font-geist-sans);
+  --color-background-secondary: var(--background-secondary);
+  --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-indigo-deep: var(--indigo-deep);
+  --color-purple-primary: var(--purple-primary);
+  --color-purple-secondary: var(--purple-secondary);
+  --color-purple-soft: var(--purple-soft);
+  --color-gp-green: var(--gp-green);
+  --color-gp-green-dark: var(--gp-green-dark);
+  --color-gp-green-light: var(--gp-green-light);
+  --color-gp-green-soft: var(--gp-green-soft);
+  --color-gp-green-glow: var(--gp-green-glow);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-text-disabled: var(--text-disabled);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -49,72 +65,137 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  /* Light mode — a genuinely light theme that keeps the brand identity:
+     lavender-tinted white surfaces, the GP-green as the accent color, and a
+     soft purple atmosphere. Green is used for CTAs/active states only. */
+  --background: #f7f7fb;
+  --background-secondary: #f0f1f8;
+  --surface: #ffffff;
+  --surface-elevated: #fafaff;
+  --foreground: #0e1020;
+
+  /* shadcn token mapping */
+  --card: #ffffff;
+  --card-foreground: #0e1020;
+  --popover: #ffffff;
+  --popover-foreground: #0e1020;
+  --primary: #00a651;
+  --primary-foreground: #ffffff;
+  --secondary: #f0f1f8;
+  --secondary-foreground: #0e1020;
+  --muted: rgba(14, 16, 32, 0.04);
+  --muted-foreground: #6e7288;
+  --accent: rgba(0, 166, 81, 0.1);
+  --accent-foreground: #0b8f4d;
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  --destructive-foreground: oklch(0.985 0 0);
+  --border: rgba(14, 16, 32, 0.1);
+  --input: rgba(14, 16, 32, 0.14);
+  --ring: #00a651;
+  --chart-1: #6d4aff;
+  --chart-2: #00a651;
+  --chart-3: #7c5cff;
+  --chart-4: #0b8f4d;
+  --chart-5: #9b7eff;
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar: #ffffff;
+  --sidebar-foreground: #0e1020;
+  --sidebar-primary: #00a651;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: rgba(0, 166, 81, 0.1);
+  --sidebar-accent-foreground: #0b8f4d;
+  --sidebar-border: rgba(14, 16, 32, 0.08);
+  --sidebar-ring: #00a651;
+
+  /* Purple / indigo atmosphere */
+  --indigo-deep: #e9e6fb;
+  --purple-primary: #6d4aff;
+  --purple-secondary: #7c5cff;
+  --purple-soft: #8a6dff;
+
+  /* Grameenphone-inspired green */
+  --gp-green: #00a651;
+  --gp-green-dark: #008f46;
+  --gp-green-light: #0b8f4d;
+  --gp-green-soft: rgba(0, 166, 81, 0.1);
+  --gp-green-glow: rgba(0, 166, 81, 0.15);
+
+  /* Typography */
+  --text-primary: #0e1020;
+  --text-secondary: #4a4d63;
+  --text-muted: #6e7288;
+  --text-disabled: #a2a5b8;
+
+  /* Body atmosphere (subtle in light) */
+  --atmosphere-purple: rgba(109, 74, 255, 0.07);
+  --atmosphere-green: rgba(0, 166, 81, 0.05);
+  --atmosphere-purple-deep: rgba(109, 74, 255, 0.04);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  /* Deep navy/black foundation */
+  --background: #080a18;
+  --background-secondary: #0d1024;
+  --surface: #101329;
+  --surface-elevated: #151834;
+  --foreground: #f7f7fa;
+
+  /* shadcn token mapping */
+  --card: #101329;
+  --card-foreground: #f7f7fa;
+  --popover: #101329;
+  --popover-foreground: #f7f7fa;
+  --primary: #00a651;
+  --primary-foreground: #ffffff;
+  --secondary: #0d1024;
+  --secondary-foreground: #f7f7fa;
+  --muted: rgba(255, 255, 255, 0.05);
+  --muted-foreground: #72758a;
+  --accent: rgba(0, 166, 81, 0.1);
+  --accent-foreground: #45c77a;
+  --destructive: oklch(0.65 0.19 25);
+  --destructive-foreground: oklch(0.985 0 0);
+  --border: rgba(255, 255, 255, 0.08);
+  --input: rgba(255, 255, 255, 0.12);
+  --ring: #00a651;
+  --chart-1: #6d4aff;
+  --chart-2: #00a651;
+  --chart-3: #7c5cff;
+  --chart-4: #45c77a;
+  --chart-5: #9b7eff;
+  --radius: 0.625rem;
+  --sidebar: #0d1024;
+  --sidebar-foreground: #f7f7fa;
+  --sidebar-primary: #00a651;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: rgba(0, 166, 81, 0.1);
+  --sidebar-accent-foreground: #45c77a;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-ring: #00a651;
+
+  /* Purple / indigo atmosphere */
+  --indigo-deep: #17153a;
+  --purple-primary: #6d4aff;
+  --purple-secondary: #7c5cff;
+  --purple-soft: #9b7eff;
+
+  /* Grameenphone-inspired green */
+  --gp-green: #00a651;
+  --gp-green-dark: #008f46;
+  --gp-green-light: #45c77a;
+  --gp-green-soft: rgba(0, 166, 81, 0.12);
+  --gp-green-glow: rgba(0, 166, 81, 0.2);
+
+  /* Typography */
+  --text-primary: #f7f7fa;
+  --text-secondary: #a6a8b8;
+  --text-muted: #72758a;
+  --text-disabled: #55586a;
+
+  /* Body atmosphere (dark) */
+  --atmosphere-purple: rgba(109, 74, 255, 0.12);
+  --atmosphere-green: rgba(0, 166, 81, 0.08);
+  --atmosphere-purple-deep: rgba(109, 74, 255, 0.06);
 }
 
 @layer base {
@@ -123,6 +204,13 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* Never a flat page — a soft, layered atmosphere: purple top-left, GP green top-right.
+       Alphas come from --atmosphere-* so light mode stays subtle. */
+    background-image:
+      radial-gradient(circle at 15% 10%, var(--atmosphere-purple), transparent 30%),
+      radial-gradient(circle at 85% 15%, var(--atmosphere-green), transparent 28%),
+      radial-gradient(circle at 50% 120%, var(--atmosphere-purple-deep), transparent 40%);
+    background-attachment: fixed;
   }
   html {
     @apply font-sans;
@@ -279,3 +367,4 @@
     pointer-events: none;
   }
 }
+
