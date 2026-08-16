@@ -1,0 +1,24 @@
+import { NextRequest } from "next/server";
+
+import { ok, handleError } from "@/lib/http";
+import { requireActor } from "@/lib/auth/actor";
+import { updateUserSchema } from "@/schemas/user.schema";
+import * as userService from "@/services/user.service";
+
+interface Ctx {
+  params: Promise<{ id: string }>;
+}
+
+export async function PATCH(req: NextRequest, ctx: Ctx) {
+  try {
+    const actor = await requireActor();
+    const { id } = await ctx.params;
+    const input = updateUserSchema.parse(await req.json());
+    if (input.role) {
+      return ok(await userService.updateUserRole(actor, id, input.role));
+    }
+    return ok(await userService.updateProfile(actor.id, { name: input.name }));
+  } catch (err) {
+    return handleError(err);
+  }
+}
