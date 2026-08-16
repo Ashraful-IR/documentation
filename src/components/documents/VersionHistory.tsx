@@ -30,9 +30,11 @@ import { DocumentViewer } from "./DocumentViewer";
 interface VersionHistoryProps {
   documentId: string;
   currentVersion: number;
+  /** Extra classes merged onto the trigger button (e.g. for dark editor chrome). */
+  triggerClassName?: string;
 }
 
-export function VersionHistory({ documentId, currentVersion }: VersionHistoryProps) {
+export function VersionHistory({ documentId, currentVersion, triggerClassName }: VersionHistoryProps) {
   const [versions, setVersions] = useState<DocumentVersionSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState<{ versionNumber: number; content: TiptapDocument } | null>(null);
@@ -76,7 +78,7 @@ export function VersionHistory({ documentId, currentVersion }: VersionHistoryPro
     <>
       <Sheet onOpenChange={(open) => open && void load()}>
         <SheetTrigger asChild>
-          <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground">
+          <Button variant="ghost" size="sm" className={`gap-1.5 text-muted-foreground ${triggerClassName ?? ""}`}>
             <History className="size-3.5" /> History
           </Button>
         </SheetTrigger>

@@ -74,20 +74,9 @@ export default async function DocumentationView({ params }: { params: Promise<{ 
 
   return (
     <div className="min-h-full">
-      <div className="mx-auto w-full max-w-[680px] px-8 pb-1 pt-10">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <h1 className="text-3xl font-semibold tracking-tight">{doc.title}</h1>
-          </div>
-          {canEdit && (
-            <Button asChild size="sm" variant="outline" className="gap-1.5">
-              <Link href={`/editor/${doc.id}`}>
-                <Pencil className="size-3.5" /> Edit
-              </Link>
-            </Button>
-          )}
-        </div>
-        <div className="mt-2 flex items-center gap-2">
+      {/* App-level metadata strip — the title itself renders on the paper page */}
+      <div className="mx-auto flex w-full max-w-[820px] items-center justify-between gap-3 px-8 py-4">
+        <div className="flex items-center gap-2">
           <Badge variant={doc.status === "PUBLISHED" ? "default" : "secondary"} className="text-[10px]">
             {doc.status}
           </Badge>
@@ -96,8 +85,15 @@ export default async function DocumentationView({ params }: { params: Promise<{ 
           )}
           <span className="text-xs text-muted-foreground">Updated {new Date(doc.updatedAt).toLocaleString()}</span>
         </div>
+        {canEdit && (
+          <Button asChild size="sm" variant="outline" className="gap-1.5">
+            <Link href={`/editor/${doc.id}`}>
+              <Pencil className="size-3.5" /> Edit
+            </Link>
+          </Button>
+        )}
       </div>
-      <DocumentViewer content={doc.content as import("@/types/editor").TiptapDocument} />
+      <DocumentViewer content={doc.content as import("@/types/editor").TiptapDocument} title={doc.title} />
     </div>
   );
 }

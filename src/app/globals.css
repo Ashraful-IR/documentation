@@ -128,3 +128,154 @@
     @apply font-sans;
   }
 }
+
+/*
+ * Paper document typography — shared by the editor and the read-only viewer.
+ * The page is always white paper with dark text, independent of the app theme
+ * (the dark workspace around it is the editor canvas, not the document).
+ */
+@layer components {
+  .document-body {
+    font-size: 15px;
+    line-height: 1.7;
+    color: #18181b;
+    word-wrap: break-word;
+  }
+
+  .document-body > *:first-child {
+    margin-top: 0;
+  }
+  .document-body > *:last-child {
+    margin-bottom: 0;
+  }
+
+  .document-body p {
+    margin: 0.5em 0 1em;
+  }
+
+  .document-body h1,
+  .document-body h2,
+  .document-body h3,
+  .document-body h4,
+  .document-body h5,
+  .document-body h6 {
+    color: #111113;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .document-body h1 {
+    font-size: 1.6rem;
+    margin: 1.6em 0 0.7em;
+  }
+  .document-body h2 {
+    font-size: 1.3rem;
+    margin: 1.5em 0 0.6em;
+  }
+  .document-body h3 {
+    font-size: 1.15rem;
+    margin: 1.3em 0 0.5em;
+  }
+  .document-body h4 {
+    font-size: 1rem;
+    margin: 1.2em 0 0.4em;
+  }
+
+  .document-body ul {
+    list-style: disc;
+    padding-left: 1.4em;
+    margin: 0.5em 0 1em;
+  }
+  .document-body ol {
+    list-style: decimal;
+    padding-left: 1.4em;
+    margin: 0.5em 0 1em;
+  }
+  .document-body li {
+    margin: 0.25em 0;
+  }
+  .document-body li > ul,
+  .document-body li > ol {
+    margin: 0.25em 0;
+  }
+  .document-body li::marker {
+    color: #71717a;
+  }
+
+  .document-body a {
+    color: #2563eb;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .document-body blockquote {
+    border-left: 3px solid #d4d4d8;
+    margin: 1em 0;
+    padding-left: 1em;
+    color: #52525b;
+    font-style: italic;
+  }
+
+  .document-body code {
+    background: #f4f4f5;
+    border-radius: 4px;
+    padding: 0.1em 0.35em;
+    font-size: 0.85em;
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    color: #111113;
+  }
+  .document-body pre {
+    background: #18181b;
+    border-radius: 8px;
+    margin: 1em 0;
+    overflow-x: auto;
+    padding: 14px 16px;
+    color: #e4e4e7;
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .document-body pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+
+  .document-body img {
+    border: 1px solid #e4e4e7;
+    border-radius: 8px;
+    margin: 1em 0;
+    max-width: 100%;
+  }
+
+  .document-body hr {
+    border: none;
+    border-top: 1px solid #e4e4e7;
+    margin: 2em 0;
+  }
+
+  .document-body table {
+    border-collapse: collapse;
+    font-size: 0.9em;
+    margin: 1em 0;
+    width: 100%;
+  }
+  .document-body th,
+  .document-body td {
+    border: 1px solid #e4e4e7;
+    padding: 6px 10px;
+    text-align: left;
+    vertical-align: top;
+  }
+  .document-body th {
+    background: #fafafa;
+    font-weight: 600;
+  }
+
+  .document-body .is-editor-empty:first-child::before {
+    color: #a1a1aa;
+    content: attr(data-placeholder);
+    float: left;
+    height: 0;
+    pointer-events: none;
+  }
+}

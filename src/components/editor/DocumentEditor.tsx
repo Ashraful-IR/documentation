@@ -5,10 +5,10 @@ import { EditorContent, useEditor } from "@tiptap/react";
 import { toast } from "sonner";
 
 import { Input } from "@/components/ui/input";
-import { contentColumnClass, buildEditorExtensions, proseClass } from "./editor-config";
+import { buildEditorExtensions, documentBodyClass } from "./editor-config";
+import { EditorToolbar } from "./EditorToolbar";
 import { EditorBubbleMenu } from "./BubbleMenu";
 import { SlashCommand } from "./SlashCommand";
-import { SaveStatus } from "./SaveStatus";
 import { DraftRecoveryDialog, type DraftRecoveryChoice } from "./DraftRecoveryDialog";
 import { STORAGE_KEYS, getItem, setItem, removeItem, type EditorDraft } from "@/lib/storage/local-storage";
 import { Api, ClientError } from "@/lib/api/client";
@@ -17,6 +17,9 @@ import type { TiptapDocument } from "@/types/editor";
 
 const AUTOSAVE_DEBOUNCE_MS = 1200;
 const DRAFT_DEBOUNCE_MS = 400;
+
+/** Fixed paper width (A4-ish on screen). Scaled by the zoom control. */
+const PAPER_WIDTH = 820;
 
 export interface DocumentEditorProps {
   documentId: string;
@@ -38,6 +41,9 @@ export function DocumentEditor({
   const [title, setTitle] = useState(initialTitle);
   const [status, setStatus] = useState<Status>("idle");
   const [draftPrompt, setDraftPrompt] = useState<{ kind: "unchanged" | "conflict" } | null>(null);
+  const [zoom, setZoom] = useState(100);
+  const [pageHeight, setPageHeight] = useState(0);
+  const pageRef = useRef<HTMLDivElement>(null);
 
   const draftKey = STORAGE_KEYS.editorDraft(documentId);
   const positionKey = STORAGE_KEYS.editorLastPosition(documentId);
@@ -157,6 +163,17 @@ export function DocumentEditor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editor]);
 
+  // Track the (unscaled) page height so the zoom wrapper can size itself.
+  useEffect(() => {
+    const el = pageRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      for (const e of entries) setPageHeight(e.contentRect.height);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   function handleDraftChoice(choice: DraftRecoveryChoice) {
     setDraftPrompt(null);
     if (choice === "draft") {
@@ -174,15 +191,18 @@ export function DocumentEditor({
     }
   }
 
-  // Flush pending changes on unload.
+  // Flush pending changes on unload. sendBeacon can only POST, but the
+  // document route is PATCH — use a keepalive fetch so the verb is preserved.
   useEffect(() => {
     const flush = () => {
       if (dirtyRef.current) {
         try {
-          navigator.sendBeacon(
-            `/api/documents/${documentId}`,
-            new Blob([JSON.stringify({ title: titleRef.current, content: contentRef.current })], { type: "application/json" }),
-          );
+          void fetch(`/api/documents/${documentId}`, {
+            method: "PATCH",
+            keepalive: true,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title: titleRef.current, content: contentRef.current }),
+          });
         } catch {
           // ignore
         }
@@ -196,40 +216,59 @@ export function DocumentEditor({
   }, [documentId]);
 
   const dirty = status === "unsaved" || status === "failed" || status === "saving";
+  const scale = zoom / 100;
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="mx-auto w-full max-w-[680px] px-8 pb-2 pt-8">
-        <div className="flex items-center gap-3">
-          <Input
-            value={title}
-            onChange={(e) => {
-              setTitle(e.target.value);
-              titleRef.current = e.target.value;
-              if (e.target.value !== initialTitle) scheduleSave(contentRef.current, e.target.value);
-              onTitleChange?.(e.target.value);
-            }}
-            disabled={!canEdit}
-            placeholder="Untitled document"
-            className="h-auto border-0 bg-transparent px-0 text-2xl font-semibold tracking-tight shadow-none focus-visible:ring-0 disabled:opacity-100"
-            aria-label="Document title"
-          />
-        </div>
-        <div className="mt-1 flex h-5 items-center">
-          <SaveStatus status={status} />
+    <div className="flex h-full flex-col bg-muted">
+      {editor && <EditorToolbar editor={editor} zoom={zoom} onZoomChange={setZoom} status={status} />}
+
+      {/* Editor workspace — theme canvas around the paper */}
+      <div className="min-h-0 flex-1 overflow-auto bg-muted">
+        <div className="flex min-h-full justify-center px-6 py-10">
+          <div
+            className="relative shrink-0"
+            style={{ width: PAPER_WIDTH * scale, height: Math.max(pageHeight * scale, 1) }}
+          >
+            {/* White paper page */}
+            <div
+              ref={pageRef}
+              className="absolute left-0 top-0 bg-white text-zinc-900 shadow-2xl"
+              style={{ width: PAPER_WIDTH, transform: `scale(${scale})`, transformOrigin: "top left" }}
+            >
+              <div className="px-16 py-14">
+                {/* Page header — app chrome, not document content */}
+                <div className="mb-10 flex items-center justify-between">
+                  <span className="text-[11px] font-medium tracking-wide text-muted-foreground">Documentation Platform</span>
+                  <span className="text-[10px] font-semibold tracking-[0.25em] text-muted-foreground">DOC EDITOR</span>
+                </div>
+
+                <Input
+                  value={title}
+                  onChange={(e) => {
+                    setTitle(e.target.value);
+                    titleRef.current = e.target.value;
+                    if (e.target.value !== initialTitle) scheduleSave(contentRef.current, e.target.value);
+                    onTitleChange?.(e.target.value);
+                  }}
+                  disabled={!canEdit}
+                  placeholder="Untitled document"
+                  aria-label="Document title"
+                  className="mb-8 h-auto border-0 bg-transparent p-0 text-2xl font-bold leading-tight tracking-tight text-zinc-900 shadow-none focus-visible:ring-0 disabled:opacity-100"
+                />
+
+                {editor && <EditorContent editor={editor} className={documentBodyClass} />}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        {editor && (
-          <>
-            <EditorContent editor={editor} className={`${contentColumnClass} ${proseClass}`} />
-            {canEdit && <EditorBubbleMenu editor={editor} />}
-            {canEdit && <SlashCommand editor={editor} />}
-          </>
-        )}
-      </div>
+
+      {editor && canEdit && <EditorBubbleMenu editor={editor} />}
+      {editor && canEdit && <SlashCommand editor={editor} />}
       <DraftRecoveryDialog open={draftPrompt !== null} kind={draftPrompt?.kind ?? null} onChoose={handleDraftChoice} />
-      <span className="sr-only" aria-live="polite">{dirty ? "Unsaved changes" : ""}</span>
+      <span className="sr-only" aria-live="polite">
+        {dirty ? "Unsaved changes" : ""}
+      </span>
     </div>
   );
 }
