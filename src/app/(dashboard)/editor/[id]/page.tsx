@@ -36,8 +36,8 @@ export default async function EditorPage({ params }: { params: Promise<{ id: str
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex h-11 shrink-0 items-center gap-2 border-b px-4">
-        <Button asChild variant="ghost" size="sm" className="gap-1 text-muted-foreground">
+      <div className="flex h-11 shrink-0 items-center gap-5 border-b px-10 ">
+        <Button asChild  size="sm" className="gap-2 border-2 rounded-md">
           <Link href={backHref}>
             <ArrowLeft className="size-3.5" /> Back
           </Link>

@@ -2,7 +2,7 @@ import { chromium } from "playwright-core";
 import "dotenv/config";
 import { createSessionToken } from "../src/lib/auth/session";
 
-const BASE = process.env.BASE_URL ?? "http://localhost:3001";
+const BASE = process.env.BASE_URL ?? "http://localhost:3000";
 const BRAVE = "/opt/brave.com/brave/brave";
 
 async function main() {
@@ -19,46 +19,46 @@ async function main() {
   const page = await context.newPage();
   page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
 
-  const asideWidth = () => page.$eval("aside", (el) => el.getBoundingClientRect().width);
   const asideBox = () =>
     page.$eval("aside", (el) => {
       const r = el.getBoundingClientRect();
-      return { left: Math.round(r.left), width: Math.round(r.width), visibility: getComputedStyle(el).visibility };
+      return { left: Math.round(r.left), width: Math.round(r.width) };
     });
+  const isVisible = async (label: string) => {
+    const el = await page.$(`[aria-label="${label}"]`);
+    return el ? await el.isVisible() : false;
+  };
 
-  // --- Desktop ---
+  // --- Desktop: expand -> fully collapse -> restore ---
   await page.goto(`${BASE}/documentation`, { waitUntil: "networkidle" });
-  await page.waitForSelector('[aria-label="Toggle sidebar"]', { timeout: 10000 });
-  console.log("desktop expanded:", JSON.stringify(await asideBox()));
+  await page.waitForSelector('[aria-label="Hide sidebar"]', { timeout: 10000 });
+  console.log("desktop expanded:", JSON.stringify(await asideBox()), "| close btn:", await isVisible("Hide sidebar"), "| open btn:", await isVisible("Show sidebar"));
 
-  await page.click('[aria-label="Toggle sidebar"]');
+  await page.click('[aria-label="Hide sidebar"]');
   await page.waitForTimeout(400);
-  console.log("desktop collapsed:", JSON.stringify(await asideBox()));
+  console.log("desktop collapsed:", JSON.stringify(await asideBox()), "| close btn:", await isVisible("Hide sidebar"), "| open btn:", await isVisible("Show sidebar"));
+  await page.screenshot({ path: "/tmp/sidebar-collapsed.png" });
 
-  await page.click('[aria-label="Toggle sidebar"]');
+  await page.click('[aria-label="Show sidebar"]');
   await page.waitForTimeout(400);
   console.log("desktop restored:", JSON.stringify(await asideBox()));
   await page.screenshot({ path: "/tmp/sidebar-desktop.png" });
 
-  // --- Mobile: drawer closed initially, opens via toggle, closes via backdrop ---
+  // --- Mobile: open button -> drawer -> backdrop close -> Escape close ---
   await page.setViewportSize({ width: 390, height: 844 });
   await page.waitForTimeout(300);
-  console.log("mobile initial:", JSON.stringify(await asideBox()));
+  console.log("mobile closed:", JSON.stringify(await asideBox()), "| close btn:", await isVisible("Hide sidebar"), "| open btn:", await isVisible("Show sidebar"));
 
-  await page.click('[aria-label="Toggle sidebar"]', { force: true });
+  await page.click('[aria-label="Show sidebar"]', { force: true });
   await page.waitForTimeout(400);
-  console.log("mobile after toggle:", JSON.stringify(await asideBox()));
+  console.log("mobile drawer open:", JSON.stringify(await asideBox()), "| close btn:", await isVisible("Hide sidebar"));
   await page.screenshot({ path: "/tmp/sidebar-mobile-open.png" });
 
-  const backdrop = await page.$("div.bg-black\\/50");
-  console.log("backdrop present when open:", backdrop !== null);
-  // Click a point outside the 288px drawer (viewport is 390px wide).
-  await page.mouse.click(360, 400);
+  await page.mouse.click(360, 400); // outside the 288px drawer
   await page.waitForTimeout(400);
-  console.log("mobile after backdrop click:", JSON.stringify(await asideBox()));
+  console.log("mobile after backdrop:", JSON.stringify(await asideBox()));
 
-  // Reopen, then close via Escape.
-  await page.click('[aria-label="Toggle sidebar"]', { force: true });
+  await page.click('[aria-label="Show sidebar"]', { force: true });
   await page.waitForTimeout(400);
   await page.keyboard.press("Escape");
   await page.waitForTimeout(400);
@@ -66,10 +66,7 @@ async function main() {
 
   console.log(errors.length === 0 ? "PASS: no console errors" : "console errors:\n" + errors.join("\n"));
   await browser.close();
-  const ok =
-    errors.length === 0 &&
-    true; // state details checked via logs; exit code driven by console errors + manual review
-  process.exit(ok ? 0 : 1);
+  process.exit(errors.length === 0 ? 0 : 1);
 }
 
 main().catch((e) => {

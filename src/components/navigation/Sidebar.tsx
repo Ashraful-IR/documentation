@@ -203,13 +203,14 @@ export function Sidebar({ tree, loading, role, mutations }: SidebarProps) {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between px-3 pb-1 pt-3">
+      {/* pr-10 keeps the + button clear of the collapse toggle on the sidebar's right edge */}
+      <div className="flex items-center justify-between pb-1 pl-3 pr-10 pt-0.5">
         <h2 className="px-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Documentation</h2>
         {canEdit && (
           <Button
             variant="ghost"
             size="icon"
-            className="size-6"
+            className="size-10"
             onClick={() => setNewParent("root")}
             aria-label="Add item"
           >
