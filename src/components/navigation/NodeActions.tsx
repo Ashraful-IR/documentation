@@ -52,6 +52,9 @@ export function NodeActions({ node, slugPath, canEdit, onAction }: NodeActionsPr
           size="icon"
           className="size-6 opacity-0 transition-opacity group-hover/node:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100"
           aria-label={`Actions for ${node.title}`}
+          // Stop the click from bubbling to the sidebar row's navigate/toggle handler.
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
         >
           <MoreHorizontal className="size-3.5" />
         </Button>

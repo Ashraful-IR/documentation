@@ -344,7 +344,18 @@ function SortableRow({
         {...listeners}
         onClick={(e) => {
           e.stopPropagation();
-          onNavigate();
+          // Parent rows: from another page → navigate + expand the dropdown;
+          // already on their page → toggle only. Leaf rows always navigate.
+          if (item.hasChildren) {
+            if (isCurrentPath) {
+              onToggle();
+            } else {
+              if (!expanded) onToggle();
+              onNavigate();
+            }
+          } else {
+            onNavigate();
+          }
         }}
         className={`group/node relative flex cursor-pointer select-none items-center gap-1 rounded-md px-1.5 py-1 mt-4 text-sm ${
           isActive ? "opacity-40" : ""
@@ -358,12 +369,10 @@ function SortableRow({
         <Icon className="size-3.5 shrink-0 text-muted-foreground" />
         <span className="min-w-0 flex-1 truncate">{item.title}</span>
         {item.hasChildren && (
+          // The chevron is part of the row: its clicks bubble to the row handler
+          // so the whole row responds identically (navigate + expand / toggle).
           <button
             className="ml-2 flex size-4 shrink-0 items-center justify-center rounded-sm text-muted-foreground hover:bg-accent"
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggle();
-            }}
             aria-label={expanded ? "Collapse" : "Expand"}
           >
             <ChevronRight className={`size-3 transition-transform duration-150 ${expanded ? "rotate-90" : ""}`} />

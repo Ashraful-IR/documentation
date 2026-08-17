@@ -23,7 +23,8 @@ export function SearchCommand() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
+  // Monotonic counter so stale search responses are never rendered.
+  const searchSeq = useRef(0);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -47,22 +48,27 @@ export function SearchCommand() {
   useEffect(() => {
     if (!open || query.trim().length === 0) {
       setResults([]);
+      setLoading(false);
       return;
     }
-    setLoading(true);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(async () => {
-      try {
-        setResults(await Api.search(query));
-      } catch {
-        setResults([]);
-      } finally {
-        setLoading(false);
-      }
-    }, 250);
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
+    // Debounce: wait until the user pauses typing before firing the request.
+    // 400ms absorbs natural human typing pauses, so a single query fires once
+    // even when typing with short pauses between keystrokes.
+    const timer = setTimeout(() => {
+      const seq = ++searchSeq.current;
+      setLoading(true);
+      void Api.search(query)
+        .then((data) => {
+          if (seq === searchSeq.current) setResults(data);
+        })
+        .catch(() => {
+          if (seq === searchSeq.current) setResults([]);
+        })
+        .finally(() => {
+          if (seq === searchSeq.current) setLoading(false);
+        });
+    }, 600);
+    return () => clearTimeout(timer);
   }, [query, open]);
 
   function go(result: SearchResult) {
