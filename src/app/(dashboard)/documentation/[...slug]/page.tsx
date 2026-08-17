@@ -137,9 +137,12 @@ export default async function DocumentationView({ params }: { params: Promise<{ 
 
   return (
     <div className="min-h-full">
-      <div className="mx-auto flex w-full max-w-[1100px] items-start gap-8 px-8 py-10">
-        {/* Center column — breadcrumbs, title, metadata, content, prev/next */}
-        <div className="min-w-0 max-w-[820px] flex-1">
+      <div className="flex w-full items-start gap-8 px-8 py-10">
+        {/* Center column — the article is centered (max-w-[820px]) inside the
+            space between the sidebar and the right TOC, so the gap to each
+            panel stays equal at every viewport width. */}
+        <div className="min-w-0 flex-1">
+          <div className="mx-auto w-full max-w-[820px]">
           <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
             <Link href="/documentation" className="flex items-center gap-1 transition-colors hover:text-foreground">
               <Home className="size-3.5" /> Home
@@ -240,11 +243,17 @@ export default async function DocumentationView({ params }: { params: Promise<{ 
               )}
             </div>
           )}
+          </div>
         </div>
 
-        {/* Right column — sticky table of contents (desktop only) */}
+        {/* Right column — sticky table of contents (desktop only). It caps at
+            the viewport height below the navbar and scrolls independently when
+            the heading list is long; the center column scrolls beneath it. */}
         {tocItems.length > 0 && (
-          <OnThisPage items={tocItems} className="sticky top-0 hidden w-56 shrink-0 lg:block" />
+          <OnThisPage
+            items={tocItems}
+            className="sticky top-0 hidden max-h-[calc(100dvh-3rem)] w-80 shrink-0 overflow-y-auto lg:block"
+          />
         )}
       </div>
     </div>

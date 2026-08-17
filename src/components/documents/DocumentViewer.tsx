@@ -5,7 +5,27 @@ import { EditorContent, useEditor } from "@tiptap/react";
 
 import { documentBodyClass, buildEditorExtensions } from "@/components/editor/editor-config";
 import type { HeadingItem } from "@/lib/content/headings";
-import type { TiptapDocument } from "@/types/editor";
+import type { TiptapDocument, TiptapNode } from "@/types/editor";
+
+/**
+ * Reader mode strips per-run text styling — the `textStyle` mark carries
+ * hardcoded colors/fonts baked into content by DOCX imports or the editor
+ * (e.g. Word's `color: black` / `#262626`). Rendering those inline styles in
+ * dark mode makes text stay black on the dark background. The reader is
+ * theme-aware, so it drops the mark and lets the app theme control text color.
+ * The editor/paper view keeps the marks (Word colors are meaningful there).
+ */
+function stripInlineStyles(doc: TiptapDocument): TiptapDocument {
+  const clone = structuredClone(doc);
+  const walk = (node: TiptapNode) => {
+    if (node.marks?.length) {
+      node.marks = node.marks.filter((m) => m.type !== "textStyle");
+    }
+    node.content?.forEach(walk);
+  };
+  clone.content?.forEach(walk);
+  return clone;
+}
 
 export function DocumentViewer({
   content,
@@ -25,12 +45,16 @@ export function DocumentViewer({
 }) {
   const editor = useEditor({
     extensions: buildEditorExtensions(),
-    content,
+    content: variant === "reader" ? stripInlineStyles(content) : content,
     editable: false,
     editorProps: {
       attributes: { class: "outline-none" },
     },
     immediatelyRender: false,
+    // Read-only viewer: without this, every setContent transaction re-renders
+    // the component and EditorContent re-creates the ProseMirror DOM, which
+    // wipes the heading anchors and code-block chrome we stamp below.
+    shouldRerenderOnTransaction: false,
   });
 
   // Keep the read-only view in sync when navigating between documents without a
@@ -40,45 +64,56 @@ export function DocumentViewer({
   // right after, in the same effect.
   useEffect(() => {
     if (!editor) return;
-    editor.commands.setContent(content);
+    editor.commands.setContent(variant === "reader" ? stripInlineStyles(content) : content);
 
     if (variant !== "reader") return;
 
     const dom = editor.view.dom;
 
-    if (headings?.length) {
-      const els = dom.querySelectorAll<HTMLElement>("h1, h2, h3, h4, h5, h6");
-      els.forEach((el, i) => {
-        const item = headings[i];
-        if (item) el.id = item.id;
-      });
-    }
+    const stamp = () => {
+      if (headings?.length) {
+        const els = dom.querySelectorAll<HTMLElement>("h1, h2, h3, h4, h5, h6");
+        els.forEach((el, i) => {
+          const item = headings[i];
+          if (item) el.id = item.id;
+        });
+      }
 
-    dom.querySelectorAll<HTMLElement>("pre").forEach((pre) => {
-      if (pre.dataset.readerDecorated === "1") return;
-      pre.dataset.readerDecorated = "1";
-      const code = pre.querySelector("code");
-      const lang =
-        pre.dataset.language ??
-        code?.className.match(/language-([\w+-]+)/)?.[1] ??
-        "code";
-      const bar = document.createElement("div");
-      bar.className = "reader-code-bar";
-      const label = document.createElement("span");
-      label.textContent = lang;
-      const copy = document.createElement("button");
-      copy.type = "button";
-      copy.textContent = "Copy";
-      copy.addEventListener("click", () => {
-        void navigator.clipboard.writeText(code?.textContent ?? pre.textContent ?? "");
-        copy.textContent = "Copied!";
-        setTimeout(() => {
-          copy.textContent = "Copy";
-        }, 1500);
+      dom.querySelectorAll<HTMLElement>("pre").forEach((pre) => {
+        if (pre.dataset.readerDecorated === "1") return;
+        pre.dataset.readerDecorated = "1";
+        const code = pre.querySelector("code");
+        const lang =
+          pre.dataset.language ??
+          code?.className.match(/language-([\w+-]+)/)?.[1] ??
+          "code";
+        const bar = document.createElement("div");
+        bar.className = "reader-code-bar";
+        const label = document.createElement("span");
+        label.textContent = lang;
+        const copy = document.createElement("button");
+        copy.type = "button";
+        copy.textContent = "Copy";
+        copy.addEventListener("click", () => {
+          void navigator.clipboard.writeText(code?.textContent ?? pre.textContent ?? "");
+          copy.textContent = "Copied!";
+          setTimeout(() => {
+            copy.textContent = "Copy";
+          }, 1500);
+        });
+        bar.append(label, copy);
+        pre.prepend(bar);
       });
-      bar.append(label, copy);
-      pre.prepend(bar);
-    });
+    };
+
+    stamp();
+
+    // Tiptap can replace the ProseMirror DOM after our synchronous stamping
+    // (deferred view renders), which would drop the anchors and code chrome.
+    // Re-stamp whenever the DOM changes; stamp() is idempotent, so this is safe.
+    const observer = new MutationObserver(() => stamp());
+    observer.observe(dom, { childList: true, subtree: true });
+    return () => observer.disconnect();
   }, [editor, content, variant, headings]);
 
   if (!editor) {
