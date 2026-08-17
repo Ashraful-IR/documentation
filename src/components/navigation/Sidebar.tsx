@@ -214,7 +214,7 @@ export function Sidebar({ tree, loading, role, mutations }: SidebarProps) {
         )}
       </div>
       <ScrollArea className="flex-1">
-        <div className="px-2 pb-4">
+        <div className="px-5 pb-4 pt-10">
           {loading && tree.length === 0 ? (
             <div className="space-y-1.5 px-1 pt-2">
               {[0, 1, 2, 3].map((i) => (
@@ -359,7 +359,7 @@ function SortableRow({
         <span className="min-w-0 flex-1 truncate">{item.title}</span>
         {item.hasChildren && (
           <button
-            className="flex size-4 shrink-0 items-center justify-center rounded-sm text-muted-foreground hover:bg-accent"
+            className="ml-2 flex size-4 shrink-0 items-center justify-center rounded-sm text-muted-foreground hover:bg-accent"
             onClick={(e) => {
               e.stopPropagation();
               onToggle();
