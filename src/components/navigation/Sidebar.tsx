@@ -117,13 +117,8 @@ export function Sidebar({ tree, loading, role, mutations }: SidebarProps) {
       window.open(node.linkUrl, "_blank");
       return;
     }
-    if (node.type === "FOLDER") {
-      toggleExpand(node.id);
-      return;
-    }
-    if (node.documentId) {
-      router.push(`/documentation/${slugPaths.get(node.id) ?? node.slug}`);
-    }
+    // Folders open their index page (children stay expandable via the chevron).
+    router.push(`/documentation/${slugPaths.get(node.id) ?? node.slug}`);
   }
 
   const actionHandlers: NodeActionCallbacks = {
@@ -205,7 +200,7 @@ export function Sidebar({ tree, loading, role, mutations }: SidebarProps) {
     <div className="flex h-full flex-col">
       {/* pr-10 keeps the + button clear of the collapse toggle on the sidebar's right edge */}
       <div className="flex items-center justify-between pb-1 pl-3 pr-10 pt-0.5">
-        <h2 className="px-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Documentation</h2>
+        <h2 className="px-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground"></h2>
         {canEdit && (
           <Button
             variant="ghost"
@@ -341,7 +336,7 @@ function SortableRow({
   const Icon = item.type === "FOLDER" ? Folder : item.type === "LINK" ? Link2 : FileText;
 
   return (
-    <li style={{ paddingLeft: item.depth * indentWidth() }} className="list-none">
+    <li style={{ paddingLeft: item.depth * indentWidth() }} className="list-none mt-2">
       <div
         ref={setNodeRef}
         style={style}
@@ -351,7 +346,7 @@ function SortableRow({
           e.stopPropagation();
           onNavigate();
         }}
-        className={`group/node relative flex cursor-pointer select-none items-center gap-1 rounded-md px-1.5 py-1 text-sm ${
+        className={`group/node relative flex cursor-pointer select-none items-center gap-1 rounded-md px-1.5 py-1 mt-4 text-sm ${
           isActive ? "opacity-40" : ""
         } ${isOver ? "ring-1 ring-inset ring-ring" : ""} ${
           isCurrentPath ? "bg-accent font-medium text-accent-foreground" : "text-foreground/80 hover:bg-accent/60"
@@ -360,7 +355,9 @@ function SortableRow({
         {isCurrentPath && (
           <span className="absolute left-0 top-1/2 h-3.5 w-[3px] -translate-y-1/2 rounded-r-full bg-gp-green" />
         )}
-        {item.hasChildren ? (
+        <Icon className="size-3.5 shrink-0 text-muted-foreground" />
+        <span className="min-w-0 flex-1 truncate">{item.title}</span>
+        {item.hasChildren && (
           <button
             className="flex size-4 shrink-0 items-center justify-center rounded-sm text-muted-foreground hover:bg-accent"
             onClick={(e) => {
@@ -370,13 +367,9 @@ function SortableRow({
             aria-label={expanded ? "Collapse" : "Expand"}
           >
             <ChevronRight className={`size-3 transition-transform duration-150 ${expanded ? "rotate-90" : ""}`} />
+            <span className="sr-only">{expanded ? "expanded" : "collapsed"}</span>
           </button>
-        ) : (
-          <span className="w-4 shrink-0" />
         )}
-        <Icon className="size-3.5 shrink-0 text-muted-foreground" />
-        <span className="min-w-0 flex-1 truncate">{item.title}</span>
-        {item.hasChildren && <span className="sr-only">{expanded ? "expanded" : "collapsed"}</span>}
         {canEdit && (
           <NodeActions
             node={{

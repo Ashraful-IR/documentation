@@ -1,5 +1,6 @@
 import { ExternalLink, FileText, Folder } from "lucide-react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import { BrandMark } from "@/components/layout/BrandMark";
 import { getSessionUser } from "@/lib/auth/actor";
@@ -9,7 +10,24 @@ export const dynamic = "force-dynamic";
 
 export default async function DocumentationLanding() {
   const user = await getSessionUser();
-  const tree = user ? await getTree({ id: user.id, role: user.role }) : [];
+  if (!user) redirect("/login");
+
+  // Viewers land on a welcome screen; admins/editors keep the management landing.
+  if (user.role === "VIEWER") {
+    return (
+      <div className="flex min-h-full flex-col items-center justify-center px-8 py-16 text-center">
+        <p className="text-lg font-medium uppercase tracking-[0.2em] text-muted-foreground">Welcome to</p>
+        <BrandMark size="lg" className="mt-6 h-14" />
+        <h1 className="mt-6 text-5xl font-semibold tracking-tight">Cockpit GLM</h1>
+        <p className="mt-4 max-w-lg text-base leading-relaxed text-muted-foreground">
+          Explore the documentation to learn how the platform works — browse the guides and references from
+          the sidebar to get started.
+        </p>
+      </div>
+    );
+  }
+
+  const tree = await getTree({ id: user.id, role: user.role });
   const roots = tree.filter((n) => n.parentId === null);
 
   return (
@@ -35,11 +53,7 @@ export default async function DocumentationLanding() {
         <div className="grid gap-3 sm:grid-cols-2">
           {roots.map((node) => {
             const href =
-              node.type === "LINK"
-                ? node.linkUrl ?? "#"
-                : node.type === "FOLDER"
-                  ? "#"
-                  : `/documentation/${node.slug}`;
+              node.type === "LINK" ? node.linkUrl ?? "#" : `/documentation/${node.slug}`;
             const Icon = node.type === "FOLDER" ? Folder : node.type === "LINK" ? ExternalLink : FileText;
             return (
               <Link

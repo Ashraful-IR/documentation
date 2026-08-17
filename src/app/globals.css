@@ -250,6 +250,8 @@
     color: #111113;
     font-weight: 600;
     letter-spacing: -0.01em;
+    /* Keep headings clear of the container's top edge when scrolled to via the TOC */
+    scroll-margin-top: 1.25rem;
   }
   .document-body h1 {
     font-size: 1.6rem;
@@ -365,6 +367,166 @@
     float: left;
     height: 0;
     pointer-events: none;
+  }
+
+  /*
+   * Reader typography — theme-aware documentation content (no paper). Used by
+   * the three-panel reader; mirrors .document-body structure but follows the
+   * app theme instead of hardcoded white-paper colors.
+   */
+  .reader-body {
+    @apply text-foreground;
+    font-size: 15px;
+    line-height: 1.7;
+    word-wrap: break-word;
+  }
+
+  .reader-body > *:first-child {
+    margin-top: 0;
+  }
+  .reader-body > *:last-child {
+    margin-bottom: 0;
+  }
+
+  .reader-body p {
+    margin: 0.5em 0 1em;
+  }
+
+  .reader-body h1,
+  .reader-body h2,
+  .reader-body h3,
+  .reader-body h4,
+  .reader-body h5,
+  .reader-body h6 {
+    @apply font-semibold text-foreground;
+    letter-spacing: -0.01em;
+    /* Keep headings clear of the container's top edge when scrolled to via the TOC */
+    scroll-margin-top: 1.25rem;
+  }
+  .reader-body h1 {
+    font-size: 1.6rem;
+    margin: 1.6em 0 0.7em;
+  }
+  .reader-body h2 {
+    font-size: 1.3rem;
+    margin: 1.5em 0 0.6em;
+  }
+  .reader-body h3 {
+    font-size: 1.15rem;
+    margin: 1.3em 0 0.5em;
+  }
+  .reader-body h4 {
+    font-size: 1rem;
+    margin: 1.2em 0 0.4em;
+  }
+
+  .reader-body ul {
+    list-style: disc;
+    padding-left: 1.4em;
+    margin: 0.5em 0 1em;
+  }
+  .reader-body ol {
+    list-style: decimal;
+    padding-left: 1.4em;
+    margin: 0.5em 0 1em;
+  }
+  .reader-body li {
+    margin: 0.25em 0;
+  }
+  .reader-body li > ul,
+  .reader-body li > ol {
+    margin: 0.25em 0;
+  }
+  .reader-body li::marker {
+    @apply text-muted-foreground;
+  }
+
+  .reader-body a {
+    @apply text-primary;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .reader-body blockquote {
+    border-left: 3px solid var(--color-border);
+    margin: 1em 0;
+    padding-left: 1em;
+    @apply text-muted-foreground;
+    font-style: italic;
+  }
+
+  .reader-body code {
+    @apply rounded bg-muted text-foreground;
+    padding: 0.1em 0.35em;
+    font-size: 0.85em;
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+  }
+  .reader-body pre {
+    @apply border bg-muted text-foreground;
+    border-radius: 8px;
+    margin: 1em 0;
+    overflow-x: auto;
+    padding: 14px 16px;
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .reader-body pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+
+  /* Code block header injected by the reader (language label + copy button) */
+  .reader-code-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: -14px -16px 12px;
+    padding: 6px 12px;
+    border-bottom: 1px solid var(--color-border);
+    @apply text-muted-foreground;
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 11px;
+  }
+  .reader-code-bar button {
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: inherit;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    @apply text-muted-foreground hover:text-foreground;
+  }
+
+  .reader-body img {
+    @apply rounded-lg border;
+    margin: 1em 0;
+    max-width: 100%;
+  }
+
+  .reader-body hr {
+    border: none;
+    border-top: 1px solid var(--color-border);
+    margin: 2em 0;
+  }
+
+  .reader-body table {
+    border-collapse: collapse;
+    font-size: 0.9em;
+    margin: 1em 0;
+    width: 100%;
+  }
+  .reader-body th,
+  .reader-body td {
+    border: 1px solid var(--color-border);
+    padding: 6px 10px;
+    text-align: left;
+    vertical-align: top;
+  }
+  .reader-body th {
+    @apply bg-muted font-semibold;
   }
 }
 
