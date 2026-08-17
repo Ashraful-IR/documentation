@@ -14,12 +14,18 @@ import { readdir, readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import postgres from "postgres";
 
+import { ensureDatabaseExists } from "./create-db";
+
 const root = resolve(import.meta.dirname, "../..");
 const migrationsDir = join(root, "drizzle");
 
 async function main() {
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error("DATABASE_URL is not set");
+
+  // Bootstrap: create the database if it doesn't exist yet, so a fresh
+  // checkout can run `db:migrate` without a manual CREATE DATABASE step.
+  await ensureDatabaseExists(url);
 
   const client = postgres(url, { max: 1 });
   try {
