@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Documentatiotform",
-    template: "%s · Documentation Platform",
+    default: "Cockpit GLM",
+    template: "%s - Cockpit GLM",
   },
   description:
     "A premium, local-first documentation workspace: structured navigation, a rich editor, and versioned publishing — running entirely on your machine.",

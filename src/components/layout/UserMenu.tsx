@@ -46,10 +46,12 @@ export function UserMenu({ user }: { user: SessionUser }) {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel>
-          <div className="flex flex-col gap-0.5">
-            <span className="text-sm font-medium">{user.name}</span>
-            <span className="text-xs font-normal text-muted-foreground">{user.email}</span>
-            <Badge variant="secondary" className="mt-1 w-fit text-[10px]">
+          <div className="flex justify-between items-center gap-0.5">
+            <div className="flex flex-col justify-between items-start gap-1">
+              <span className="text-sm font-medium">{user.name}</span>
+              <span className="text-xs font-normal text-muted-foreground">{user.email}</span>
+            </div>
+            <Badge variant="secondary" className="mt-1 w-fit text-[10px] border rounded-[5px] dark:border-cyan-700 ">
               {user.role}
             </Badge>
           </div>
