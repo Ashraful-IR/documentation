@@ -200,17 +200,17 @@ export function Sidebar({ tree, loading, role, mutations }: SidebarProps) {
     <div className="flex h-full flex-col">
       {/* pr-10 keeps the + button clear of the collapse toggle on the sidebar's right edge */}
       <div className="flex items-center justify-between pb-1 pl-3 pr-10 pt-0.5">
-        <h2 className="px-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground"></h2>
+        <h2 className="px-1 text-sm font-semibold uppercase tracking-wider">CONTENT</h2>
         {canEdit && (
           <Button
             variant="ghost"
             size="icon"
-            className="size-10"
+            className="size-10 "
             onClick={() => setNewParent("root")}
             aria-label="Add item"
           >
-            <Plus className="size-3.5" />
-          </Button>
+            <Plus className="size-5" />
+          </Button> 
         )}
       </div>
       <ScrollArea className="flex-1">
