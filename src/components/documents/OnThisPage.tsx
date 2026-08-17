@@ -19,6 +19,9 @@ export function OnThisPage({ items, className }: { items: HeadingItem[]; classNa
   const asideRef = useRef<HTMLElement>(null);
   const containerRef = useRef<HTMLElement | Window | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
+  // True while a TOC click's smooth scroll is in flight — the spy must not
+  // override the item the user just clicked.
+  const suppressRef = useRef(false);
 
   const minLevel = Math.min(...items.map((i) => i.level));
 
@@ -30,7 +33,7 @@ export function OnThisPage({ items, className }: { items: HeadingItem[]; classNa
 
     const updateActive = () => {
       const c = containerRef.current;
-      if (!c) return;
+      if (!c || suppressRef.current) return;
       const containerTop =
         c instanceof HTMLElement ? c.getBoundingClientRect().top : 0;
       const threshold = containerTop + 96; // keep the heading clear of the top edge
@@ -39,6 +42,14 @@ export function OnThisPage({ items, className }: { items: HeadingItem[]; classNa
         const el = document.getElementById(item.id);
         if (el && el.getBoundingClientRect().top <= threshold) current = item.id;
       }
+      // Scrolled to the bottom: the final headings can't always reach the
+      // threshold (short trailing content), so honor the last heading —
+      // otherwise the last sections can never become active.
+      const atBottom =
+        c instanceof HTMLElement
+          ? c.scrollTop + c.clientHeight >= c.scrollHeight - 1
+          : window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
+      if (atBottom && items.length > 0) current = items[items.length - 1].id;
       setActiveId(current ?? items[0]?.id ?? null);
     };
 
@@ -66,8 +77,25 @@ export function OnThisPage({ items, className }: { items: HeadingItem[]; classNa
   function scrollToHeading(id: string) {
     const el = document.getElementById(id);
     if (!el) return;
-    el.scrollIntoView({ behavior: "smooth", block: "start" });
+    suppressRef.current = true;
     setActiveId(id);
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+    // Re-enable the spy once the programmatic scroll settles (scrollend fires
+    // when it finishes; timeout as a fallback). Until then the clicked item
+    // stays highlighted.
+    let cleared = false;
+    const clear = () => {
+      if (cleared) return;
+      cleared = true;
+      suppressRef.current = false;
+      const c = containerRef.current;
+      if (c instanceof HTMLElement) c.removeEventListener("scrollend", clear);
+      else window.removeEventListener("scrollend", clear);
+    };
+    const c = containerRef.current;
+    if (c instanceof HTMLElement) c.addEventListener("scrollend", clear);
+    else window.addEventListener("scrollend", clear);
+    setTimeout(clear, 800);
   }
 
   return (

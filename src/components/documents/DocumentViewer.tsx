@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
 
 import { documentBodyClass, buildEditorExtensions } from "@/components/editor/editor-config";
-import type { HeadingItem } from "@/lib/content/headings";
+import { slugifyHeading, type HeadingItem } from "@/lib/content/headings";
 import type { TiptapDocument, TiptapNode } from "@/types/editor";
 
 /**
@@ -72,10 +72,20 @@ export function DocumentViewer({
 
     const stamp = () => {
       if (headings?.length) {
-        const els = dom.querySelectorAll<HTMLElement>("h1, h2, h3, h4, h5, h6");
-        els.forEach((el, i) => {
-          const item = headings[i];
-          if (item) el.id = item.id;
+        // Match each rendered heading to its TOC anchor by its own text, using
+        // the same slugify + dedupe as extractHeadings. Positional matching
+        // breaks when the document contains empty headings: the DOM has one
+        // element per heading, but the TOC list skips empty ones, which shifts
+        // every id onto the wrong element (clicking "3.7" would find a heading
+        // back in section "3").
+        const counts = new Map<string, number>();
+        dom.querySelectorAll<HTMLElement>("h1, h2, h3, h4, h5, h6").forEach((el) => {
+          const text = el.textContent?.trim() ?? "";
+          if (!text) return;
+          const base = slugifyHeading(text);
+          const count = counts.get(base) ?? 0;
+          counts.set(base, count + 1);
+          el.id = count === 0 ? base : `${base}-${count + 1}`;
         });
       }
 
