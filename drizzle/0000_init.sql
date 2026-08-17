@@ -3,11 +3,15 @@
 -- Six tables, ltree-backed navigation tree, fractional sort_key, soft deletes.
 -- ============================================================================
 
+-- Install ltree in `public` *before* touching search_path: the app connects
+-- with the default search_path and casts `::ltree` in raw SQL, so the type
+-- must be resolvable from `public`. (Installing it while search_path points at
+-- `documentation` makes it invisible to app connections — see migrate.ts.)
+CREATE EXTENSION IF NOT EXISTS ltree WITH SCHEMA public;
+
 SET search_path TO documentation, public;
 
 CREATE SCHEMA IF NOT EXISTS documentation;
-
-CREATE EXTENSION IF NOT EXISTS ltree;
 
 -- ---------------------------------------------------------------------------
 -- Enums

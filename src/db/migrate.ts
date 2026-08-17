@@ -34,6 +34,21 @@ async function main() {
       )
     `;
 
+    // Self-heal: ltree must live in `public` so app connections (which use the
+    // default search_path and cast `::ltree` in raw SQL) can resolve the type.
+    // Early 0000_init.sql versions installed it into `documentation` via
+    // `SET search_path`; normalize such installs on every migrate run.
+    const [ltreeExt] = await client`
+      SELECT e.extnamespace, n.nspname AS schema
+      FROM pg_extension e
+      JOIN pg_namespace n ON n.oid = e.extnamespace
+      WHERE e.extname = 'ltree'
+    `;
+    if (ltreeExt && ltreeExt.schema !== "public") {
+      await client.unsafe("ALTER EXTENSION ltree SET SCHEMA public");
+      console.log("  moved ltree extension into schema public");
+    }
+
     const applied = new Set(
       (
         await client`

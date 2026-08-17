@@ -3,6 +3,13 @@ import { cookies } from "next/headers";
 
 export const SESSION_COOKIE = "doc_session";
 
+/**
+ * Session lifetime: 12 hours.
+ * Single source of truth — used for both the token's `exp` claim and the
+ * cookie `maxAge`, so the two can never drift apart.
+ */
+export const SESSION_TTL_SECONDS = 60 * 60 * 12;
+
 interface SessionPayload {
   uid: string;
   exp: number; // unix seconds
@@ -23,8 +30,8 @@ function sign(data: string): string {
  * Stateless — the server only needs AUTH_SECRET to verify (§26 keeps the
  * six-table core intact; no sessions table).
  */
-export function createSessionToken(userId: string, ttlDays = 7): string {
-  const exp = Math.floor(Date.now() / 1000) + ttlDays * 24 * 60 * 60;
+export function createSessionToken(userId: string, ttlSeconds = SESSION_TTL_SECONDS): string {
+  const exp = Math.floor(Date.now() / 1000) + ttlSeconds;
   const payload: SessionPayload = { uid: userId, exp };
   const encoded = Buffer.from(JSON.stringify(payload)).toString("base64url");
   return `${encoded}.${sign(encoded)}`;

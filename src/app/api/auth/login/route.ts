@@ -3,7 +3,7 @@ import { NextRequest } from "next/server";
 import { ok, handleError } from "@/lib/http";
 import { loginSchema } from "@/schemas/user.schema";
 import { login } from "@/services/user.service";
-import { SESSION_COOKIE } from "@/lib/auth/session";
+import { SESSION_COOKIE, SESSION_TTL_SECONDS } from "@/lib/auth/session";
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
       httpOnly: true,
       sameSite: "lax",
       path: "/",
-      maxAge: 60 * 60 * 24 * 7,
+      maxAge: SESSION_TTL_SECONDS,
     });
     return res;
   } catch (err) {
