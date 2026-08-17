@@ -1,7 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Accessing the dev server from other devices on the LAN (e.g. the network
+  // URL Next prints at startup) is blocked by default for safety. Allow it so
+  // chunks and HMR load when opening http://192.168.0.47:3000.
+  allowedDevOrigins: ["192.168.0.47"],
 };
 
 export default nextConfig;
