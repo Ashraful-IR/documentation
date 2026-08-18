@@ -21,6 +21,15 @@ const DRAFT_DEBOUNCE_MS = 400;
 /** Fixed paper width (A4-ish on screen). Scaled by the zoom control. */
 const PAPER_WIDTH = 820;
 
+/**
+ * Imperative handle the surrounding workspace uses to force-save pending
+ * edits before publishing/checkpointing. Resolves with the flushed snapshot,
+ * or null when the save failed (an error toast is already shown).
+ */
+export interface EditorApi {
+  flush: () => Promise<{ title: string; content: TiptapDocument } | null>;
+}
+
 export interface DocumentEditorProps {
   documentId: string;
   initialTitle: string;
@@ -28,6 +37,10 @@ export interface DocumentEditorProps {
   serverUpdatedAt: string;
   canEdit: boolean;
   onTitleChange?: (title: string) => void;
+  /** Fired whenever the working copy changes (so the workspace can flag unpublished edits). */
+  onEditorChanged?: () => void;
+  /** Filled with the editor's imperative API once mounted. */
+  apiRef?: React.MutableRefObject<EditorApi | null>;
 }
 
 export function DocumentEditor({
@@ -37,6 +50,8 @@ export function DocumentEditor({
   serverUpdatedAt,
   canEdit,
   onTitleChange,
+  onEditorChanged,
+  apiRef,
 }: DocumentEditorProps) {
   const [title, setTitle] = useState(initialTitle);
   const [status, setStatus] = useState<Status>("idle");
@@ -55,6 +70,9 @@ export function DocumentEditor({
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savedUpdatedAtRef = useRef(serverUpdatedAt);
+  // Set while a restored draft is being pushed to the server; on success the
+  // localStorage draft is removed so the recovery dialog can't re-appear.
+  const draftRestoredRef = useRef(false);
 
   const setStatusSafe = (s: Status) => {
     statusRef.current = s;
@@ -76,30 +94,42 @@ export function DocumentEditor({
     [draftKey],
   );
 
-  const saveNow = useCallback(
-    async (content: TiptapDocument, t: string) => {
-      if (!dirtyRef.current) return;
-      dirtyRef.current = false;
-      setStatusSafe("saving");
-      try {
-        const updated = await Api.updateDocument(documentId, { title: t, content });
-        savedUpdatedAtRef.current = updated.updatedAt;
-        setItem<EditorDraft>(draftKey, {
-          content,
-          title: t,
-          savedServerUpdatedAt: updated.updatedAt,
-          savedAt: Date.now(),
-        });
-        setStatusSafe("saved");
-        onTitleChange?.(t);
-      } catch (err) {
-        dirtyRef.current = true;
-        setStatusSafe("failed");
-        toast.error(err instanceof ClientError ? err.message : "Autosave failed");
+  /**
+   * Force-save the latest edits from the refs (clearing any pending timers).
+   * Used by autosave and by the workspace before publish/checkpoint.
+   */
+  const flush = useCallback(async () => {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
+    const snapshot = { title: titleRef.current, content: contentRef.current };
+    if (!dirtyRef.current) return snapshot;
+    dirtyRef.current = false;
+    setStatusSafe("saving");
+    try {
+      const updated = await Api.updateDocument(documentId, { title: snapshot.title, content: snapshot.content });
+      savedUpdatedAtRef.current = updated.updatedAt;
+      setItem<EditorDraft>(draftKey, {
+        content: snapshot.content,
+        title: snapshot.title,
+        savedServerUpdatedAt: updated.updatedAt,
+        savedAt: Date.now(),
+      });
+      setStatusSafe("saved");
+      onTitleChange?.(snapshot.title);
+      // A restored draft is now safely on the server — drop it so the recovery
+      // dialog never prompts for it again (fixes the restore-loop).
+      if (draftRestoredRef.current) {
+        draftRestoredRef.current = false;
+        removeItem(draftKey);
       }
-    },
-    [documentId, draftKey, onTitleChange],
-  );
+      return snapshot;
+    } catch (err) {
+      dirtyRef.current = true;
+      setStatusSafe("failed");
+      toast.error(err instanceof ClientError ? err.message : "Autosave failed");
+      return null;
+    }
+  }, [documentId, draftKey, onTitleChange]);
 
   const scheduleSave = useCallback(
     (content: TiptapDocument, t: string) => {
@@ -108,9 +138,10 @@ export function DocumentEditor({
       titleRef.current = t;
       if (statusRef.current !== "saving") setStatusSafe("unsaved");
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-      saveTimerRef.current = setTimeout(() => void saveNow(content, t), AUTOSAVE_DEBOUNCE_MS);
+      saveTimerRef.current = setTimeout(() => void flush(), AUTOSAVE_DEBOUNCE_MS);
+      onEditorChanged?.();
     },
-    [saveNow],
+    [flush, onEditorChanged],
   );
 
   const editor = useEditor({
@@ -133,6 +164,15 @@ export function DocumentEditor({
       }
     },
   });
+
+  // Expose the imperative API (used by the workspace to flush before publish).
+  useEffect(() => {
+    if (!apiRef) return;
+    apiRef.current = { flush };
+    return () => {
+      apiRef.current = null;
+    };
+  }, [apiRef, flush]);
 
   // Restore caret position from the last session.
   useEffect(() => {
@@ -181,10 +221,15 @@ export function DocumentEditor({
       if (draft?.content && editor) {
         editor.commands.setContent(draft.content as TiptapDocument);
         contentRef.current = draft.content as TiptapDocument;
+        titleRef.current = draft.title ?? titleRef.current;
         if (draft.title) setTitle(draft.title);
         dirtyRef.current = true;
         setStatusSafe("unsaved");
-        scheduleSave(draft.content as TiptapDocument, draft.title ?? titleRef.current);
+        // Persist the restored content immediately (no debounce) so the draft
+        // is saved before the user can leave; on success flush() removes the
+        // localStorage draft, breaking the repeated-prompt loop.
+        draftRestoredRef.current = true;
+        void flush();
       }
     } else {
       removeItem(draftKey);
@@ -249,6 +294,7 @@ export function DocumentEditor({
                     titleRef.current = e.target.value;
                     if (e.target.value !== initialTitle) scheduleSave(contentRef.current, e.target.value);
                     onTitleChange?.(e.target.value);
+                    onEditorChanged?.();
                   }}
                   disabled={!canEdit}
                   placeholder="Untitled document"

@@ -129,6 +129,10 @@ export const documents = documentation.table(
       .notNull()
       .default(sql`'{"type":"doc","content":[]}'::jsonb`),
     contentText: text("content_text"),
+    // Last published snapshot — the reader renders this instead of `content`,
+    // so autosave edits stay a draft until the document is published again.
+    publishedTitle: text("published_title"),
+    publishedContent: jsonb("published_content").$type<TiptapJson>(),
     status: documentStatusEnum("status").notNull().default("DRAFT"),
     currentVersion: integer("current_version").notNull().default(1),
     createdBy: uuid("created_by").references(() => users.id),

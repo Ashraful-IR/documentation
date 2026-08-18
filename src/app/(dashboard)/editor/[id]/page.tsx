@@ -1,13 +1,8 @@
-import { ArrowLeft, Rocket, Save } from "lucide-react";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { DocumentEditor } from "@/components/editor/DocumentEditor";
-import { VersionHistory } from "@/components/documents/VersionHistory";
+import { EditorWorkspace } from "@/components/editor/EditorWorkspace";
 import { getSessionUser } from "@/lib/auth/actor";
-import { getDocument, findNavNodeForDocument, publishDocument, checkpointDocument } from "@/services/document.service";
+import { getDocument, findNavNodeForDocument } from "@/services/document.service";
 import { getSlugPath } from "@/services/navigation.service";
 import { ApiError } from "@/lib/http";
 
@@ -35,47 +30,16 @@ export default async function EditorPage({ params }: { params: Promise<{ id: str
   const backHref = nav ? `/documentation/${await getSlugPath(actor, nav.id)}` : "/documentation";
 
   return (
-    <div className="flex h-full flex-col">
-      {/* App bar — theme-aware, above the editor toolbar */}
-      <div className="flex h-11 shrink-0 items-center gap-5 border-b px-10">
-        <Button asChild size="sm" className="gap-2 rounded-md border-2">
-          <Link href={backHref}>
-            <ArrowLeft className="size-3.5" /> Back
-          </Link>
-        </Button>
-        <div className="flex-1" />
-        <VersionHistory documentId={doc.id} currentVersion={doc.currentVersion} />
-        <form
-          action={async () => {
-            "use server";
-            await checkpointDocument(actor, doc.id, { changeSummary: null });
-          }}
-        >
-          <Button type="submit" variant="outline" size="sm" className="gap-1.5">
-            <Save className="size-3.5" /> Save version
-          </Button>
-        </form>
-        <form
-          action={async () => {
-            "use server";
-            await publishDocument(actor, doc.id, { changeSummary: null });
-          }}
-        >
-          <Button type="submit" size="sm" className="gap-1.5">
-            <Rocket className="size-3.5" /> Publish
-          </Button>
-        </form>
-        <Badge variant={doc.status === "PUBLISHED" ? "default" : "secondary"} className="text-[10px]">
-          {doc.status}
-        </Badge>
-      </div>
-      <DocumentEditor
-        documentId={doc.id}
-        initialTitle={doc.title}
-        initialContent={doc.content as import("@/types/editor").TiptapDocument}
-        serverUpdatedAt={doc.updatedAt}
-        canEdit
-      />
-    </div>
+    <EditorWorkspace
+      documentId={doc.id}
+      initialTitle={doc.title}
+      initialContent={doc.content as import("@/types/editor").TiptapDocument}
+      serverUpdatedAt={doc.updatedAt}
+      status={doc.status}
+      currentVersion={doc.currentVersion}
+      backHref={backHref}
+      canEdit
+      initialHasUnpublishedChanges={doc.hasUnpublishedChanges}
+    />
   );
 }

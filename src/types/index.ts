@@ -37,6 +37,11 @@ export interface DocumentSummary {
 export interface DocumentDetail extends DocumentSummary {
   content: unknown;
   contentText: string;
+  /** Last published snapshot — what readers see. Null until first publish. */
+  publishedTitle: string | null;
+  publishedContent: unknown;
+  /** True when the working copy has edits readers can't see yet. */
+  hasUnpublishedChanges: boolean;
   createdBy: string | null;
   updatedBy: string | null;
 }

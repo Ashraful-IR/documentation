@@ -109,6 +109,12 @@ async function main() {
   }, docId);
   check(published, "publish action works");
 
+  // 6b. The publish confirmation dialog appears — dismiss it.
+  await page.waitForSelector("text=Document published", { timeout: 5000 });
+  check(true, "publish shows confirmation dialog");
+  await page.click("button:has-text('Close')");
+  await page.waitForTimeout(300);
+
   // 7. Version history opens.
   await page.click("button:has-text('History')");
   await page.waitForSelector("text=Version history", { timeout: 5000 });

@@ -104,7 +104,10 @@ export default async function DocumentationView({ params }: { params: Promise<{ 
 
   if (!node.documentId) notFound();
   const doc = await getDocument(actor, node.documentId);
-  const content = doc.content as import("@/types/editor").TiptapDocument;
+  // Readers see the published snapshot, not the editor's working copy — edits
+  // only go live when the document is published again. Never-published docs
+  // fall back to their current (working) content as a preview.
+  const content = (doc.publishedContent ?? doc.content) as import("@/types/editor").TiptapDocument;
 
   // The right-hand "On This Page" panel is generated from the document's
   // current headings — never stored or edited manually, so it always reflects
@@ -162,10 +165,10 @@ export default async function DocumentationView({ params }: { params: Promise<{ 
             <span className="font-medium text-foreground">{node.title}</span>
           </nav>
 
-          <h1 className="mt-4 text-3xl font-bold tracking-tight">{doc.title}</h1>
+          <h1 className="mt-4 text-3xl font-bold tracking-tight">{doc.publishedTitle ?? doc.title}</h1>
 
           <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
-            <span>Last updated: {new Date(doc.updatedAt).toLocaleDateString()}</span>
+            <span>Last updated: {new Date(doc.publishedAt ?? doc.updatedAt).toLocaleDateString()}</span>
             {authorName && <span>By {authorName}</span>}
             {canEdit && (
               <Button asChild size="sm" variant="outline" className="ml-auto gap-1.5">

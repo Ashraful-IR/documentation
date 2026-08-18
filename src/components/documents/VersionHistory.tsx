@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { History, RotateCcw } from "lucide-react";
+import { History, Loader2, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -38,6 +38,7 @@ export function VersionHistory({ documentId, currentVersion, triggerClassName }:
   const [versions, setVersions] = useState<DocumentVersionSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState<{ versionNumber: number; content: TiptapDocument } | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
   const [restoring, setRestoring] = useState(false);
 
   async function load() {
@@ -52,11 +53,14 @@ export function VersionHistory({ documentId, currentVersion, triggerClassName }:
   }
 
   async function openPreview(versionNumber: number) {
+    setPreviewLoading(true);
     try {
       const v = await Api.getVersion(documentId, versionNumber);
       setPreview({ versionNumber, content: v.content as TiptapDocument });
     } catch (err) {
       toast.error(err instanceof ClientError ? err.message : "Failed to load version");
+    } finally {
+      setPreviewLoading(false);
     }
   }
 
@@ -117,6 +121,11 @@ export function VersionHistory({ documentId, currentVersion, triggerClassName }:
 
       <Dialog open={preview !== null} onOpenChange={(o) => !o && setPreview(null)}>
         <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-3xl">
+          {previewLoading && !preview && (
+            <div className="flex items-center justify-center gap-2 py-12 text-sm text-muted-foreground">
+              <Loader2 className="size-4 animate-spin" /> Loading version…
+            </div>
+          )}
           {preview && (
             <>
               <DialogHeader>

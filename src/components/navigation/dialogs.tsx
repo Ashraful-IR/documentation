@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -354,7 +355,8 @@ export function PublishDialog({ open, onOpenChange, documentId, onPublish }: Pub
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={confirm} disabled={saving || !documentId}>
+          <Button onClick={confirm} disabled={saving || !documentId} className="gap-1.5">
+            {saving && <Loader2 className="size-3.5 animate-spin" />}
             {saving ? "Publishing…" : "Publish"}
           </Button>
         </DialogFooter>

@@ -309,6 +309,8 @@ async function main() {
         updatedBy: adminId,
         publishedBy: adminId,
         publishedAt: new Date(),
+        publishedTitle: sample.title,
+        publishedContent: sample.content,
       })
       .returning({ id: documents.id });
     docBySlug.set(sample.slug, doc.id);

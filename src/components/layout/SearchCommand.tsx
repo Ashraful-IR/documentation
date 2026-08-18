@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { FileText, Search } from "lucide-react";
+import { FileText, Loader2, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -93,7 +93,11 @@ export function SearchCommand() {
         <Command>
           <CommandInput placeholder="Search documents and navigation…" value={query} onValueChange={setQuery} />
           <CommandList>
-            {loading && <CommandEmpty>Searching…</CommandEmpty>}
+            {loading && (
+              <CommandItem disabled className="gap-2 text-muted-foreground">
+                <Loader2 className="size-3.5 animate-spin" /> Searching…
+              </CommandItem>
+            )}
             {!loading && results.length === 0 && query.trim() && <CommandEmpty>No results for “{query}”</CommandEmpty>}
             {!query.trim() && <CommandEmpty>Type to search titles and content.</CommandEmpty>}
             <CommandGroup heading="Results">

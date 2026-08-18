@@ -31,7 +31,13 @@ export async function createDocument(
       createdBy: actor.id,
       updatedBy: actor.id,
       ...(input.status === "PUBLISHED"
-        ? { publishedBy: actor.id, publishedAt: new Date(), currentVersion: 1 }
+        ? {
+            publishedBy: actor.id,
+            publishedAt: new Date(),
+            currentVersion: 1,
+            publishedTitle: input.title,
+            publishedContent: content,
+          }
         : {}),
     })
     .returning();
@@ -108,6 +114,10 @@ export async function publishDocument(
         currentVersion: versionNumber,
         publishedBy: actor.id,
         publishedAt: new Date(),
+        // The working copy becomes the published snapshot — this is the moment
+        // draft edits go live for readers.
+        publishedTitle: doc.title,
+        publishedContent: doc.content,
         updatedAt: new Date(),
       })
       .where(eq(documents.id, id))
@@ -275,6 +285,12 @@ export async function restoreVersion(actor: Actor, documentId: string, versionNu
         title: version.title,
         content: version.content,
         contentText: extractTextFromDoc(version.content),
+        // A restore brings the version back into the working copy; for a
+        // published document it also becomes the live snapshot again so the
+        // reader page and the "current version" badge stay in sync.
+        ...(doc.status === "PUBLISHED"
+          ? { publishedTitle: version.title, publishedContent: version.content }
+          : {}),
         currentVersion: nextNumber,
         updatedBy: actor.id,
         updatedAt: new Date(),
@@ -301,11 +317,36 @@ export async function findNavNodeForDocument(documentId: string) {
   return row ?? null;
 }
 
+/**
+ * True when the working copy contains edits readers can't see yet:
+ * - a PUBLISHED document whose content/title drifted from the published snapshot;
+ * - a DRAFT document that has actual content (an empty new page is not "changes").
+ */
+function hasUnpublishedChanges(doc: {
+  title: string;
+  content: unknown;
+  publishedTitle: string | null;
+  publishedContent: unknown;
+  status: "DRAFT" | "PUBLISHED";
+}): boolean {
+  if (doc.status === "DRAFT") {
+    const content = doc.content as TiptapJson | null;
+    return (content?.content?.length ?? 0) > 0;
+  }
+  if (doc.publishedTitle === null || doc.publishedContent === null) return false;
+  return (
+    doc.title !== doc.publishedTitle ||
+    JSON.stringify(doc.content) !== JSON.stringify(doc.publishedContent)
+  );
+}
+
 function toDetail(doc: {
   id: string;
   title: string;
   content: unknown;
   contentText: string | null;
+  publishedTitle: string | null;
+  publishedContent: unknown;
   status: "DRAFT" | "PUBLISHED";
   currentVersion: number;
   publishedAt: Date | null;
@@ -319,6 +360,8 @@ function toDetail(doc: {
     title: doc.title,
     content: doc.content,
     contentText: doc.contentText ?? "",
+    publishedTitle: doc.publishedTitle,
+    publishedContent: doc.publishedContent ?? null,
     status: doc.status,
     currentVersion: doc.currentVersion,
     publishedAt: doc.publishedAt ? doc.publishedAt.toISOString() : null,
@@ -326,5 +369,6 @@ function toDetail(doc: {
     updatedAt: doc.updatedAt.toISOString(),
     createdBy: doc.createdBy,
     updatedBy: doc.updatedBy,
+    hasUnpublishedChanges: hasUnpublishedChanges(doc),
   };
 }
