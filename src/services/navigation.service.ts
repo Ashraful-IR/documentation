@@ -8,10 +8,9 @@ import { db } from "@/db";
 import { documents, navigation, type NewNavigation, type NavigationRow } from "@/db/schema";
 import { ApiError } from "@/lib/http";
 import { findFallbackAfterDelete, insertNodeAtSortKey } from "@/lib/tree/fallback";
-import { between, after, MAX_KEY_LENGTH, rebalanceKeys } from "@/lib/utils/fractional-index";
+import { between, MAX_KEY_LENGTH, rebalanceKeys } from "@/lib/utils/fractional-index";
 import { requirePermission, PERMISSIONS, type Actor } from "@/lib/auth/permissions";
 import { logAudit, AUDIT_ACTIONS } from "./audit.service";
-import { extractTextFromDoc } from "@/lib/content/text";
 import type { NavigationNode } from "@/types";
 
 /**
@@ -36,7 +35,6 @@ export function nodePath(parentPath: string | null, id: string): string {
 
 const NAV_NOT_FOUND = "NAVIGATION_NOT_FOUND";
 const NAV_PARENT_NOT_FOUND = "NAVIGATION_PARENT_NOT_FOUND";
-const NAV_SLUG_TAKEN = "SLUG_ALREADY_EXISTS";
 const NAV_DELETED = "NAVIGATION_DELETED";
 const CYCLE_NOT_ALLOWED = "CYCLE_NOT_ALLOWED";
 
@@ -148,11 +146,13 @@ async function computeSortKey(
     parentId ? eq(navigation.parentId, parentId) : isNull(navigation.parentId),
   ];
   if (excludeId) conditions.push(ne(navigation.id, excludeId));
+  // Lock siblings to prevent concurrent sort-key races (§11).
   const siblings = await tx
     .select({ id: navigation.id, sortKey: navigation.sortKey })
     .from(navigation)
     .where(and(...conditions))
-    .orderBy(asc(navigation.sortKey));
+    .orderBy(asc(navigation.sortKey))
+    .for("update");
 
   let index = siblings.length;
   let prevKey: string | null = null;
@@ -202,6 +202,11 @@ function slugify(title: string): string {
 }
 
 /** Ensures a slug is unique among siblings. */
+/**
+ * Ensures a slug is unique among siblings. Checks the DB first (fast path),
+ * but if a concurrent insert wins the race and hits the unique constraint,
+ * the caller gets a clean NAV_SLUG_TAKEN error instead of a raw Postgres error.
+ */
 async function uniqueSlug(tx: Tx, parentId: string | null, slug: string, excludeId?: string): Promise<string> {
   const candidate = slug;
   let n = 1;
@@ -366,7 +371,7 @@ export async function restoreNode(actor: Actor, id: string): Promise<void> {
 export async function hardDeleteNode(actor: Actor, id: string): Promise<void> {
   requirePermission(actor, PERMISSIONS.NAV_DELETE);
   return db.transaction(async (tx) => {
-    const [node] = await tx.select().from(navigation).where(eq(navigation.id, id)).limit(1);
+    const [node] = await tx.select().from(navigation).where(eq(navigation.id, id)).for("update").limit(1);
     if (!node) throw new ApiError(NAV_NOT_FOUND, "Navigation item not found", 404);
 
     const doomed = await tx.execute(sql`
@@ -459,7 +464,7 @@ export async function duplicateNode(actor: Actor, id: string): Promise<Navigatio
     const [source] = await tx.select().from(navigation).where(eq(navigation.id, id)).limit(1);
     if (!source) throw new ApiError(NAV_NOT_FOUND, "Navigation item not found", 404);
 
-    const copyDoc = async (documentId: string | null, title: string): Promise<string | null> => {
+    const copyDoc = async (documentId: string | null): Promise<string | null> => {
       if (!documentId) return null;
       const [doc] = await tx.select().from(documents).where(eq(documents.id, documentId)).limit(1);
       if (!doc) return null;
@@ -481,7 +486,7 @@ export async function duplicateNode(actor: Actor, id: string): Promise<Navigatio
     const copySubtree = async (parentId: string | null, sourceId: string): Promise<string> => {
       const [src] = await tx.select().from(navigation).where(eq(navigation.id, sourceId)).limit(1);
       const parentPath = await findParentPath(tx, parentId);
-      const newDocId = await copyDoc(src.documentId, src.title);
+      const newDocId = await copyDoc(src.documentId);
       const slug = await uniqueSlug(tx, parentId, `${src.slug}-copy`);
 
       const { key } = await computeSortKey(tx, parentId, null, null, null);

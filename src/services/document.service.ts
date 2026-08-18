@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { documentVersions, documents, navigation } from "@/db/schema";
@@ -14,6 +14,12 @@ const VERSION_NOT_FOUND = "VERSION_NOT_FOUND";
 const DOC_DELETED = "DOCUMENT_DELETED";
 
 const EMPTY_DOC: TiptapJson = { type: "doc", content: [] };
+
+/** Maximum number of version rows kept per document. Older versions beyond
+ *  this cap are pruned after each publish/checkpoint to prevent unbounded
+ *  table growth. The published snapshot on the documents table always
+ *  preserves the latest published content regardless of pruning. */
+const MAX_VERSIONS_PER_DOC = 50;
 
 export async function createDocument(
   actor: Actor,
@@ -128,6 +134,8 @@ export async function publishDocument(
       entityId: id,
       metadata: { versionNumber },
     });
+    // Prune old versions outside the transaction (best-effort, non-critical).
+    await pruneOldVersions(id);
     return toDetail(updated);
   });
 }
@@ -164,6 +172,8 @@ export async function checkpointDocument(
       entityId: id,
       metadata: { versionNumber, kind: "checkpoint" },
     });
+    // Prune old versions outside the transaction (best-effort, non-critical).
+    await pruneOldVersions(id);
     return toDetail(updated);
   });
 }
@@ -182,6 +192,27 @@ async function writeVersion(
     changeSummary: input.changeSummary,
     createdBy: actor.id,
   });
+  await pruneOldVersions(documentId);
+}
+
+/** Removes the oldest version rows when count exceeds MAX_VERSIONS_PER_DOC,
+ *  keeping the most recent versions. Never removes the latest version. */
+async function pruneOldVersions(documentId: string): Promise<void> {
+  const allVersions = await db
+    .select({ id: documentVersions.id, versionNumber: documentVersions.versionNumber })
+    .from(documentVersions)
+    .where(eq(documentVersions.documentId, documentId))
+    .orderBy(asc(documentVersions.versionNumber));
+
+  if (allVersions.length <= MAX_VERSIONS_PER_DOC) return;
+
+  const toDelete = allVersions.slice(0, allVersions.length - MAX_VERSIONS_PER_DOC);
+  if (toDelete.length === 0) return;
+
+  const ids = toDelete.map((v) => v.id);
+  await db
+    .delete(documentVersions)
+    .where(sql`${documentVersions.id} IN (${sql.join(ids.map((id) => sql`${id}`), sql`, `)})`);
 }
 
 export async function softDeleteDocument(actor: Actor, id: string): Promise<void> {
@@ -303,6 +334,8 @@ export async function restoreVersion(actor: Actor, documentId: string, versionNu
       entityId: documentId,
       metadata: { versionNumber },
     });
+    // Prune old versions outside the transaction (best-effort, non-critical).
+    await pruneOldVersions(documentId);
     return toDetail(updated);
   });
 }

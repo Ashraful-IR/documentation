@@ -5,6 +5,7 @@ import { EditorContent, useEditor } from "@tiptap/react";
 
 import { documentBodyClass, buildEditorExtensions } from "@/components/editor/editor-config";
 import { slugifyHeading, type HeadingItem } from "@/lib/content/headings";
+import { copyToClipboard } from "@/lib/copyToClipboard";
 import type { TiptapDocument, TiptapNode } from "@/types/editor";
 
 /**
@@ -104,9 +105,10 @@ export function DocumentViewer({
         const copy = document.createElement("button");
         copy.type = "button";
         copy.textContent = "Copy";
-        copy.addEventListener("click", () => {
-          void navigator.clipboard.writeText(code?.textContent ?? pre.textContent ?? "");
-          copy.textContent = "Copied!";
+        copy.addEventListener("click", async () => {
+          const text = code?.textContent ?? pre.textContent ?? "";
+          const ok = await copyToClipboard(text);
+          copy.textContent = ok ? "Copied!" : "Copy failed";
           setTimeout(() => {
             copy.textContent = "Copy";
           }, 1500);

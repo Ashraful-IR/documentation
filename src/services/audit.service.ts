@@ -1,4 +1,4 @@
-import { count, desc, eq } from "drizzle-orm";
+import { count, desc, eq, lt } from "drizzle-orm";
 
 import { db } from "@/db";
 import { auditLogs, users } from "@/db/schema";
@@ -20,6 +20,14 @@ export const AUDIT_ACTIONS = {
   MEDIA_UPLOADED: "MEDIA_UPLOADED",
 } as const;
 
+/** Actions that fire at high frequency (e.g. autosave) — suppressed after the
+ *  first write within a per-entity cooldown window to avoid flooding audit_logs. */
+const NOISY_ACTIONS: Set<string> = new Set([AUDIT_ACTIONS.DOCUMENT_UPDATED]);
+const COOLDOWN_MS = 60_000; // 1 minute
+
+/** Cache of last-write timestamps keyed by "action:entityId". */
+const lastWrite = new Map<string, number>();
+
 export interface AuditEvent {
   action: string;
   entityType: string;
@@ -27,9 +35,17 @@ export interface AuditEvent {
   metadata?: Record<string, unknown>;
 }
 
-/** Best-effort audit write — never throws into the calling flow. */
+/** Best-effort audit write — never throws into the calling flow.
+ *  Suppresses noisy actions (autosave) to at most one per entity per minute. */
 export async function logAudit(actor: { id: string } | null, event: AuditEvent): Promise<void> {
   try {
+    if (NOISY_ACTIONS.has(event.action)) {
+      const key = `${event.action}:${event.entityId}`;
+      const now = Date.now();
+      const last = lastWrite.get(key) ?? 0;
+      if (now - last < COOLDOWN_MS) return; // suppressed
+      lastWrite.set(key, now);
+    }
     await db.insert(auditLogs).values({
       userId: actor?.id ?? null,
       action: event.action,
@@ -39,6 +55,24 @@ export async function logAudit(actor: { id: string } | null, event: AuditEvent):
     });
   } catch (err) {
     console.error("[audit] failed to write log:", err);
+  }
+}
+
+/**
+ * Deletes audit logs older than `days` (default 90).
+ * Returns the number of rows removed. Safe to call periodically.
+ */
+export async function cleanupOldAuditLogs(days = 90): Promise<number> {
+  const cutoff = new Date(Date.now() - days * 86_400_000);
+  try {
+    const result = await db
+      .delete(auditLogs)
+      .where(lt(auditLogs.createdAt, cutoff))
+      .returning({ id: auditLogs.id });
+    return result.length;
+  } catch (err) {
+    console.error("[audit] cleanup failed:", err);
+    return 0;
   }
 }
 
