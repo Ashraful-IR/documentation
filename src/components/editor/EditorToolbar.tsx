@@ -339,9 +339,9 @@ export function EditorToolbar({ editor, zoom, onZoomChange, status }: EditorTool
                     aria-pressed={!!s.textStyle?.color}
                     className="relative flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
                   >
-                    <span className="text-sm font-bold" style={{ color: s.textStyle?.color ?? "currentColor" }}>
-                      A
-                    </span>
+                    {/* The letter stays theme-colored so it's readable in both
+                        themes; the underline bar previews the selected color. */}
+                    <span className="text-sm font-bold">A</span>
                     <span
                       className="absolute bottom-1.5 left-1/2 h-0.5 w-3 -translate-x-1/2 rounded-full"
                       style={{ backgroundColor: s.textStyle?.color ?? "currentColor" }}
@@ -364,8 +364,8 @@ export function EditorToolbar({ editor, zoom, onZoomChange, status }: EditorTool
                     setColorOpen(false);
                   }}
                   className={cn(
-                    "size-5 rounded-full border border-black/10 transition-transform hover:scale-110",
-                    s.textStyle?.color === c && "ring-2 ring-ring ring-offset-1",
+                    "size-5 rounded-full border border-border transition-transform hover:scale-110",
+                    s.textStyle?.color === c && "ring-2 ring-ring",
                   )}
                   style={{ backgroundColor: c }}
                 />
@@ -419,8 +419,8 @@ export function EditorToolbar({ editor, zoom, onZoomChange, status }: EditorTool
                     setHighlightOpen(false);
                   }}
                   className={cn(
-                    "size-5 rounded-full border border-black/10 transition-transform hover:scale-110",
-                    s.highlightColor === c && "ring-2 ring-ring ring-offset-1",
+                    "size-5 rounded-full border border-border transition-transform hover:scale-110",
+                    s.highlightColor === c && "ring-2 ring-ring",
                   )}
                   style={{ backgroundColor: c }}
                 />

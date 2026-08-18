@@ -1,9 +1,7 @@
 "use client";
 
-import { LogOut, Moon, ScrollText, Settings, Sun, Trash2, Users } from "lucide-react";
-import { useTheme } from "next-themes";
+import { Settings, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -20,20 +18,12 @@ import type { SessionUser } from "@/types";
 
 export function UserMenu({ user }: { user: SessionUser }) {
   const router = useRouter();
-  const { resolvedTheme, setTheme } = useTheme();
   const initials = user.name
     .split(/\s+/)
     .map((p) => p[0])
     .slice(0, 2)
     .join("")
     .toUpperCase();
-
-  async function logout() {
-    await fetch("/api/auth/logout", { method: "POST" });
-    toast.success("Signed out");
-    router.push("/login");
-    router.refresh();
-  }
 
   return (
     <DropdownMenu>
@@ -62,26 +52,6 @@ export function UserMenu({ user }: { user: SessionUser }) {
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => router.push("/trash")}>
           <Trash2 className="size-3.5" /> Trash
-        </DropdownMenuItem>
-        {user.role === "ADMIN" && (
-          <>
-            <DropdownMenuItem onClick={() => router.push("/users")}>
-              <Users className="size-3.5" /> Users
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => router.push("/audit")}>
-              <ScrollText className="size-3.5" /> Audit log
-            </DropdownMenuItem>
-          </>
-        )}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem
-          onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-        >
-          {resolvedTheme === "dark" ? <Sun className="size-3.5" /> : <Moon className="size-3.5" />}
-          {resolvedTheme === "dark" ? "Light mode" : "Dark mode"}
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={logout} className="text-destructive focus:text-destructive">
-          <LogOut className="size-3.5" /> Sign out
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

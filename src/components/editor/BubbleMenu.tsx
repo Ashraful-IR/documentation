@@ -50,7 +50,9 @@ export function EditorBubbleMenu({ editor }: { editor: Editor }) {
   return (
     <TiptapBubbleMenu editor={editor} updateDelay={100}>
       <TooltipProvider delayDuration={200}>
-        <div className="flex items-center gap-0.5 rounded-lg border bg-popover p-1 shadow-md">
+        {/* The editor paper hardcodes color:#18181b — without an explicit text
+            color here the icons inherit black and vanish on the dark popover. */}
+        <div className="flex items-center gap-0.5 rounded-lg border bg-popover p-1 text-popover-foreground shadow-md">
           <MenuButton label="Bold" active={editor.isActive("bold")} onClick={() => editor.chain().focus().toggleBold().run()}>
             <Bold className="size-3.5" />
           </MenuButton>

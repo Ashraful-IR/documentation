@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { LogOut, Moon, PanelLeftClose, PanelLeftOpen, ScrollText, Sun, Users } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
+import { toast } from "sonner";
 import { BrandMark } from "@/components/layout/BrandMark";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
@@ -16,6 +18,8 @@ import { SearchCommand } from "./SearchCommand";
 import { UserMenu } from "./UserMenu";
 
 export function AppShell({ user, children }: { user: SessionUser; children: React.ReactNode }) {
+  const router = useRouter();
+  const { resolvedTheme, setTheme } = useTheme();
   const { tree, loading, createNode, updateNode, moveNode, deleteNode, duplicateNode } = useNavigation();
   // Sidebar always starts open; collapsing only lasts for the current session.
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -66,16 +70,75 @@ export function AppShell({ user, children }: { user: SessionUser; children: Reac
     mutations: { createNode, updateNode, moveNode, deleteNode, duplicateNode },
   };
 
+  async function logout() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    toast.success("Signed out");
+    router.push("/login");
+    router.refresh();
+  }
+
   return (
     <div className="flex h-dvh flex-col">
-      {/* Top bar — no sidebar toggle here */}
-      <header className="flex h-12 shrink-0 items-center gap-2 border-b bg-background/60 px-3 backdrop-blur-sm sm:px-4">
+      {/* Top bar — brand on the left, admin pages centered, search + theme/sign-out on the right */}
+      <header className="relative flex h-14 shrink-0 items-center gap-2 border-b bg-background/60 px-3 backdrop-blur-sm sm:px-4">
         <Link href="/documentation" aria-label="Cockpit GLM home" className="flex items-center gap-2">
           <BrandMark size="sm" />
           <span className="hidden text-sm font-semibold tracking-tight text-text-primary md:inline">Cockpit GLM</span>
         </Link>
+        {user.role === "ADMIN" && (
+          <div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-0.5">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-1.5 text-sm text-muted-foreground"
+              onClick={() => router.push("/users")}
+            >
+              <Users className="size-5" /> Users
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-1.5 text-sm text-muted-foreground"
+              onClick={() => router.push("/audit")}
+            >
+              <ScrollText className="size-5" /> Audit log
+            </Button>
+          </div>
+        )}
         <div className="flex-1" />
         <SearchCommand />
+        <TooltipProvider delayDuration={200}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-8"
+                onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+                aria-label={resolvedTheme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+              >
+                {resolvedTheme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">{resolvedTheme === "dark" ? "Light mode" : "Dark mode"}</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        <TooltipProvider delayDuration={200}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-8 text-destructive hover:text-destructive"
+                onClick={logout}
+                aria-label="Sign out"
+              >
+                <LogOut className="size-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">Sign out</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
         <UserMenu user={user} />
       </header>
 

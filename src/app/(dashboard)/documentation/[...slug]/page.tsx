@@ -125,15 +125,15 @@ export default async function DocumentationView({ params }: { params: Promise<{ 
     }
     throw err;
   }
-  // Readers see the published snapshot, not the editor's working copy — edits
-  // only go live when the document is published again. Never-published docs
-  // fall back to their current (working) content as a preview.
-  const content = (doc.publishedContent ?? doc.content) as import("@/types/editor").TiptapDocument;
+  // Readers see ONLY the published snapshot — edits in the editor never appear
+  // until the document is published again. A never-published doc has no
+  // snapshot, so its draft content must not leak to the reader either.
+  const isPublished = doc.publishedTitle !== null && doc.publishedContent !== null;
+  const content = (isPublished ? doc.publishedContent : { type: "doc", content: [] }) as import("@/types/editor").TiptapDocument;
 
-  // The right-hand "On This Page" panel is generated from the document's
-  // current headings — never stored or edited manually, so it always reflects
-  // the latest content after an admin saves.
-  const tocItems = extractHeadings(content);
+  // The right-hand "On This Page" panel is generated from the published
+  // content's headings — never stored or edited manually.
+  const tocItems = isPublished ? extractHeadings(content) : [];
 
   const canEdit = actor.role === "ADMIN" || actor.role === "EDITOR";
 
@@ -186,11 +186,17 @@ export default async function DocumentationView({ params }: { params: Promise<{ 
             <span className="font-medium text-foreground">{node.title}</span>
           </nav>
 
-          <h1 className="mt-4 text-3xl font-bold tracking-tight">{doc.publishedTitle ?? doc.title}</h1>
+          <h1 className="mt-4 text-3xl font-bold tracking-tight">{isPublished ? (doc.publishedTitle ?? doc.title) : node.title}</h1>
 
           <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
-            <span>Last updated: {new Date(doc.publishedAt ?? doc.updatedAt).toLocaleDateString()}</span>
-            {authorName && <span>By {authorName}</span>}
+            {isPublished ? (
+              <>
+                <span>Last updated: {new Date(doc.publishedAt ?? doc.updatedAt).toLocaleDateString()}</span>
+                {authorName && <span>By {authorName}</span>}
+              </>
+            ) : (
+              <span>Draft — not published yet</span>
+            )}
             {canEdit && (
               <Button asChild size="sm" variant="outline" className="ml-auto gap-1.5">
                 <Link href={`/editor/${doc.id}`}>
@@ -201,7 +207,13 @@ export default async function DocumentationView({ params }: { params: Promise<{ 
           </div>
 
           <div className="mt-8">
-            <DocumentViewer variant="reader" content={content} headings={tocItems} />
+            {isPublished ? (
+              <DocumentViewer variant="reader" content={content} headings={tocItems} />
+            ) : (
+              <div className="rounded-lg border border-dashed px-6 py-12 text-center text-sm text-muted-foreground">
+                This page hasn&apos;t been published yet. Its content is only visible in the editor until it is published.
+              </div>
+            )}
           </div>
 
           {/* Child pages — separate documents/folders attached under this one */}
