@@ -18,6 +18,7 @@
     "test:navigation": "tsx scripts/test-navigation.ts",
     "test:redirect": "tsx scripts/test-login-redirect.ts",
     "test:fallback": "tsx scripts/test-delete-fallback.ts",
+    "test:toolbar": "tsx scripts/test-editor-toolbar.ts",
     "test:e2e": "tsx scripts/browser-smoke.ts"
   },
   "dependencies": {
