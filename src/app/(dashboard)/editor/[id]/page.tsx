@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { EditorWorkspace } from "@/components/editor/EditorWorkspace";
 import { getSessionUser } from "@/lib/auth/actor";
 import { getDocument, findNavNodeForDocument } from "@/services/document.service";
-import { getSlugPath } from "@/services/navigation.service";
+import { findFallbackNodeAfterDelete, getSlugPath } from "@/services/navigation.service";
 import { ApiError } from "@/lib/http";
 
 export const dynamic = "force-dynamic";
@@ -22,7 +22,16 @@ export default async function EditorPage({ params }: { params: Promise<{ id: str
   try {
     doc = await getDocument(actor, id);
   } catch (err) {
-    if (err instanceof ApiError && err.status === 404) notFound();
+    // The document was deleted — send the user to the next document in the
+    // tree instead of a 404.
+    if (err instanceof ApiError && err.status === 404) {
+      const nav = await findNavNodeForDocument(id);
+      if (nav) {
+        const fallback = await findFallbackNodeAfterDelete(actor, nav.id);
+        if (fallback) redirect(`/documentation/${await getSlugPath(actor, fallback.id)}`);
+      }
+      notFound();
+    }
     throw err;
   }
 

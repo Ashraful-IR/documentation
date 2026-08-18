@@ -7,6 +7,7 @@ type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
 import { db } from "@/db";
 import { documents, navigation, type NewNavigation, type NavigationRow } from "@/db/schema";
 import { ApiError } from "@/lib/http";
+import { findFallbackAfterDelete, insertNodeAtSortKey } from "@/lib/tree/fallback";
 import { between, after, MAX_KEY_LENGTH, rebalanceKeys } from "@/lib/utils/fractional-index";
 import { requirePermission, PERMISSIONS, type Actor } from "@/lib/auth/permissions";
 import { logAudit, AUDIT_ACTIONS } from "./audit.service";
@@ -521,14 +522,26 @@ export async function duplicateNode(actor: Actor, id: string): Promise<Navigatio
   });
 }
 
-/** Resolves a document node by its slug chain, e.g. ["architecture", "frontend"]. */
-export async function findBySlugPath(actor: Actor, slugs: string[]): Promise<NavigationRow | null> {
+/**
+ * Resolves a document node by its slug chain, e.g. ["architecture", "frontend"].
+ * Pass `{ includeDeleted: true }` to also match soft-deleted nodes (used to
+ * compute the post-delete fallback destination instead of a 404).
+ */
+export async function findBySlugPath(
+  actor: Actor,
+  slugs: string[],
+  opts: { includeDeleted?: boolean } = {},
+): Promise<NavigationRow | null> {
   requirePermission(actor, PERMISSIONS.READ);
   if (slugs.length === 0) return null;
-  const rows = await db
-    .select({ id: navigation.id, parentId: navigation.parentId, slug: navigation.slug })
-    .from(navigation)
-    .where(isNull(navigation.deletedAt));
+  const rows = opts.includeDeleted
+    ? await db
+        .select({ id: navigation.id, parentId: navigation.parentId, slug: navigation.slug })
+        .from(navigation)
+    : await db
+        .select({ id: navigation.id, parentId: navigation.parentId, slug: navigation.slug })
+        .from(navigation)
+        .where(isNull(navigation.deletedAt));
   const byId = new Map(rows.map((r) => [r.id, r]));
   for (const row of rows) {
     if (row.slug !== slugs[slugs.length - 1]) continue;
@@ -544,6 +557,63 @@ export async function findBySlugPath(actor: Actor, slugs: string[]): Promise<Nav
     }
   }
   return null;
+}
+
+/**
+ * Returns the node to show after `deletedNodeId` is removed from the tree —
+ * the next node in display order (next sibling, or the nearest ancestor's
+ * next sibling), falling back to the previous node, or null when nothing
+ * remains. Used to replace a deleted page's URL with a live destination
+ * instead of a 404.
+ */
+export async function findFallbackNodeAfterDelete(actor: Actor, deletedNodeId: string): Promise<NavigationRow | null> {
+  requirePermission(actor, PERMISSIONS.READ);
+  const [row] = await db.select().from(navigation).where(eq(navigation.id, deletedNodeId)).limit(1);
+  if (!row) return null;
+
+  let node = row;
+  if (node.deletedAt) {
+    // Walk up to the highest deleted ancestor so the fallback reflects the
+    // entire removed subtree (a deleted folder's children are gone too).
+    while (node.parentId) {
+      const [parent] = await db.select().from(navigation).where(eq(navigation.id, node.parentId)).limit(1);
+      if (!parent || !parent.deletedAt) break;
+      node = parent;
+    }
+  }
+
+  const tree = await getTree(actor);
+
+  let fallbackId: string | null;
+  if (!node.deletedAt) {
+    // Node is still visible — compute the fallback directly from the tree.
+    fallbackId = findFallbackAfterDelete(tree, node.id);
+  } else {
+    // Reconstruct the deleted node's position in the visible tree (its
+    // subtree is gone, so it is inserted as a leaf) and pick the next node
+    // in display order.
+    const stub: NavigationNode = {
+      id: node.id,
+      parentId: node.parentId,
+      type: node.type,
+      title: node.title,
+      slug: node.slug,
+      documentId: node.documentId,
+      linkUrl: node.linkUrl,
+      icon: node.icon,
+      description: node.description,
+      isVisible: node.isVisible,
+      sortKey: node.sortKey,
+      deletedAt: node.deletedAt ? node.deletedAt.toISOString() : null,
+      effectivelyHidden: false,
+      children: [],
+    };
+    fallbackId = findFallbackAfterDelete(insertNodeAtSortKey(tree, stub), node.id);
+  }
+
+  if (!fallbackId) return null;
+  const [fallback] = await db.select().from(navigation).where(eq(navigation.id, fallbackId)).limit(1);
+  return fallback ?? null;
 }
 
 /**

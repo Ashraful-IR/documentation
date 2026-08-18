@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PasswordInput } from "@/components/ui/password-input";
 import { loginSchema } from "@/schemas/user.schema";
+import { DEFAULT_AUTH_DESTINATION, safeNextPath } from "@/lib/auth/redirect";
 
 export default function LoginPage() {
   return (
@@ -23,7 +24,10 @@ export default function LoginPage() {
 function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
-  const next = params.get("next") ?? "/documentation";
+  // Only trust a `next` that is a safe internal path. Anything else (missing,
+  // malformed, or an external URL like https://evil.com or //evil.com) falls
+  // back to the default destination — never navigate off this origin.
+  const next = safeNextPath(params.get("next")) ?? DEFAULT_AUTH_DESTINATION;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);

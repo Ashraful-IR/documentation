@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const SESSION_COOKIE = "doc_session";
+import { SESSION_COOKIE, verifySessionToken } from "./lib/auth/token";
+
 const AUTH_PATHS = ["/login", "/register"];
 
 // Comma-separated allowed origins, e.g. "http://localhost:3001,https://docs.example.com".
@@ -61,14 +62,22 @@ export function proxy(req: NextRequest) {
     }
   }
 
-  const hasSession = req.cookies.has(SESSION_COOKIE);
+  // Authenticated = the session cookie carries a token that verifies (signature
+  // + expiry). A present-but-stale cookie (expired / re-signed) must not count
+  // as authenticated, otherwise the destination would be lost — the request
+  // would fall through to the page's bare `redirect("/login")` without `next`.
+  const sessionToken = req.cookies.get(SESSION_COOKIE)?.value;
+  const hasSession = verifySessionToken(sessionToken) !== null;
   const isAuthPage = AUTH_PATHS.some((p) => pathname.startsWith(p));
   const isAuthApi = pathname.startsWith("/api/auth");
 
   if (!hasSession && !isAuthPage && !isAuthApi && pathname !== "/") {
-    const url = req.nextUrl.clone();
-    url.pathname = "/login";
-    url.searchParams.set("next", pathname);
+    // Derive `next` from the CURRENT request — pathname + query string — so
+    // the post-login redirect returns exactly where this request was headed.
+    // searchParams.set() URL-encodes the value, so the destination survives
+    // the round trip intact (including its own query parameters).
+    const url = new URL("/login", req.url);
+    url.searchParams.set("next", pathname + req.nextUrl.search);
     return NextResponse.redirect(url);
   }
   // Note: no "session present ⇒ skip auth pages" redirect here. That check

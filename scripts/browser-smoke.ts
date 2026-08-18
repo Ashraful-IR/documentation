@@ -34,8 +34,18 @@ async function main() {
     consoleErrors.push(`pageerror [${page.url()}]: ${err.message}\n${err.stack ?? ""}`);
   });
 
-  // 1. Login through the real form, with the password show/hide toggle.
-  await page.goto(`${BASE}/login`);
+  // 1. Route protection: an unauthenticated visit to a protected page is
+  // redirected to login with the CURRENT request (path + query) as `next`,
+  // and a successful login returns to that exact destination.
+  await page.goto(`${BASE}/documentation/overview?tab=1`);
+  await page.waitForURL(/\/login\?next=/, { timeout: 10000 });
+  const redirectedNext = new URL(page.url()).searchParams.get("next");
+  check(
+    redirectedNext === "/documentation/overview?tab=1",
+    `unauthenticated visit redirected with current path+query as next (got ${redirectedNext})`
+  );
+
+  // 2. Login through the real form, with the password show/hide toggle.
   await page.waitForSelector("#email", { timeout: 10000 });
   await page.fill("#email", "admin@local.dev");
   await page.fill("#password", "admin123");
@@ -44,8 +54,30 @@ async function main() {
   await page.click("button[aria-label='Hide password']");
   check((await page.getAttribute("#password", "type")) === "password", "password visibility toggle hides again");
   await page.click("button[type='submit']");
+  await page.waitForURL(/\/documentation\/overview\?tab=1$/, { timeout: 10000 });
+  check(true, "login returns to the protected page that triggered authentication");
+
+  // 2b. The login URL never carries a stale `next` — visiting a different
+  // protected page while logged out re-derives it from that request.
+  await context.clearCookies();
+  await page.goto(`${BASE}/editor/some-other-doc-id`);
+  await page.waitForURL(/\/login\?next=/, { timeout: 10000 });
+  check(
+    new URL(page.url()).searchParams.get("next") === "/editor/some-other-doc-id",
+    "a second protected page re-derives next instead of reusing the first"
+  );
+  await page.reload();
+  check(
+    new URL(page.url()).searchParams.get("next") === "/editor/some-other-doc-id",
+    "refreshing the login page keeps only the current next"
+  );
+  await page.goto(`${BASE}/login`);
+  await page.waitForSelector("#email", { timeout: 10000 });
+  await page.fill("#email", "admin@local.dev");
+  await page.fill("#password", "admin123");
+  await page.click("button[type='submit']");
   await page.waitForURL(`${BASE}/documentation`, { timeout: 10000 });
-  check(true, "login form signs in and redirects");
+  check(true, "login without next uses the default destination");
 
   // 2. Sidebar renders and toggles.
   await page.waitForSelector("text=Overview", { timeout: 10000 });
@@ -139,6 +171,21 @@ async function main() {
   await page.goto(`${BASE}/trash`);
   await page.waitForSelector("text=Trash & hidden", { timeout: 10000 });
   check(true, "trash page renders");
+
+  // 9b. Open-redirect protection: an external `next` is rejected, so login
+  // never navigates off-origin.
+  {
+    const ctx = await browser.newContext();
+    const p2 = await ctx.newPage();
+    await p2.goto(`${BASE}/login?next=${encodeURIComponent("https://evil.com")}`);
+    await p2.waitForSelector("#email", { timeout: 10000 });
+    await p2.fill("#email", "admin@local.dev");
+    await p2.fill("#password", "admin123");
+    await p2.click("button[type='submit']");
+    await p2.waitForURL(`${BASE}/documentation`, { timeout: 10000 });
+    check(true, "external next URL is rejected — login lands on the default destination");
+    await ctx.close();
+  }
 
   const realErrors = consoleErrors.filter((e) => !e.includes("favicon"));
   check(realErrors.length === 0, `no console errors (${realErrors.length} found)${realErrors.length ? `: ${realErrors.slice(0, 3).join(" | ")}` : ""}`);

@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { flattenTree, applyDragOver, computeDropTarget, wouldCreateCycle, indentWidth, type FlatItem } from "@/lib/tree/flatten";
+import { findFallbackAfterDelete } from "@/lib/tree/fallback";
 import { STORAGE_KEYS, getItem, setItem } from "@/lib/storage/local-storage";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { ClientError } from "@/lib/api/client";
@@ -77,11 +78,47 @@ function findNode(tree: NavigationNode[], id: string): NavigationNode | null {
   return null;
 }
 
+/** True when `ancestorId` sits above `nodeId` in the tree. */
+function isAncestorOf(tree: NavigationNode[], ancestorId: string, nodeId: string): boolean {
+  let cur = findNode(tree, nodeId);
+  while (cur?.parentId) {
+    if (cur.parentId === ancestorId) return true;
+    cur = findNode(tree, cur.parentId);
+  }
+  return false;
+}
+
 export function Sidebar({ tree, loading, role, mutations }: SidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const canEdit = CAN_EDIT[role];
   const slugPaths = useMemo(() => slugPathMap(tree), [tree]);
+
+  // The navigation node currently open in the main panel (viewer or editor),
+  // so deleting it from the sidebar can move the user to the next document
+  // instead of leaving a stale page that 404s on refresh.
+  const currentNodeId = useMemo(() => {
+    if (pathname.startsWith("/documentation/")) {
+      const slugPath = pathname.slice("/documentation/".length);
+      for (const [id, sp] of slugPaths) {
+        if (sp === slugPath) return id;
+      }
+      return null;
+    }
+    if (pathname.startsWith("/editor/")) {
+      const documentId = pathname.slice("/editor/".length);
+      const walk = (nodes: NavigationNode[]): NavigationNode | null => {
+        for (const n of nodes) {
+          if (n.documentId === documentId) return n;
+          const found = walk(n.children);
+          if (found) return found;
+        }
+        return null;
+      };
+      return walk(tree)?.id ?? null;
+    }
+    return null;
+  }, [pathname, slugPaths, tree]);
 
   const [expanded, setExpanded] = useLocalStorage<Record<string, boolean>>(STORAGE_KEYS.sidebarState, {});
   const collapsed = useMemo(() => new Set(Object.keys(expanded).filter((k) => expanded[k] === false)), [expanded]);
@@ -136,6 +173,33 @@ export function Sidebar({ tree, loading, role, mutations }: SidebarProps) {
     },
     onPublish: (node) => setPublishNode(node),
   };
+
+  /**
+   * Deletes a node and keeps the open view consistent: if the deletion
+   * removes the node currently on screen (or one of its ancestors), navigate
+   * to the next document in display order; otherwise just refresh the page so
+   * stale folder listings update immediately.
+   */
+  async function handleDeleteNode(id: string, permanent = false) {
+    const deleted = findNode(tree, id);
+    const affectsOpenView =
+      deleted && currentNodeId !== null && (id === currentNodeId || isAncestorOf(tree, id, currentNodeId));
+    if (affectsOpenView) {
+      const fallbackId = findFallbackAfterDelete(tree, id);
+      await mutations.deleteNode(id, permanent);
+      if (fallbackId) {
+        const fallbackPath = slugPaths.get(fallbackId);
+        router.push(fallbackPath ? `/documentation/${fallbackPath}` : "/documentation");
+      } else {
+        router.push("/documentation");
+      }
+      return;
+    }
+    await mutations.deleteNode(id, permanent);
+    // The open page may still reference the deleted node (e.g. a folder index
+    // listing it) — re-fetch the current route so it reflects the tree.
+    router.refresh();
+  }
 
   async function handleDragStart(e: DragStartEvent) {
     draggingRef.current = true;
@@ -272,7 +336,7 @@ export function Sidebar({ tree, loading, role, mutations }: SidebarProps) {
         open={deleteNode !== null}
         onOpenChange={(o) => !o && setDeleteNode(null)}
         node={deleteNode ? { id: deleteNode.id, title: deleteNode.title, hasChildren: deleteNode.children.length > 0 } : null}
-        mutations={mutations}
+        mutations={{ updateNode: mutations.updateNode, deleteNode: handleDeleteNode }}
       />
       <HideDialog open={hideNode !== null} onOpenChange={(o) => !o && setHideNode(null)} node={hideNode} mutations={mutations} />
       <PublishDialog

@@ -7,7 +7,8 @@ import { DocumentViewer } from "@/components/documents/DocumentViewer";
 import { OnThisPage } from "@/components/documents/OnThisPage";
 import { extractHeadings } from "@/lib/content/headings";
 import { getSessionUser } from "@/lib/auth/actor";
-import { findBySlugPath, getTree } from "@/services/navigation.service";
+import { ApiError } from "@/lib/http";
+import { findBySlugPath, findFallbackNodeAfterDelete, getSlugPath, getTree } from "@/services/navigation.service";
 import { getDocument } from "@/services/document.service";
 import { getUserById } from "@/services/user.service";
 import type { NavigationNode } from "@/types";
@@ -62,7 +63,15 @@ export default async function DocumentationView({ params }: { params: Promise<{ 
   const slugs = (await params).slug;
 
   const node = await findBySlugPath(actor, slugs);
-  if (!node) notFound();
+  if (!node) {
+    // The page was deleted — show the next document instead of a 404.
+    const deleted = await findBySlugPath(actor, slugs, { includeDeleted: true });
+    if (deleted) {
+      const fallback = await findFallbackNodeAfterDelete(actor, deleted.id);
+      if (fallback) redirect(`/documentation/${await getSlugPath(actor, fallback.id)}`);
+    }
+    notFound();
+  }
 
   if (node.type === "LINK" && node.linkUrl) redirect(node.linkUrl);
   if (node.type === "FOLDER") {
@@ -103,7 +112,19 @@ export default async function DocumentationView({ params }: { params: Promise<{ 
   }
 
   if (!node.documentId) notFound();
-  const doc = await getDocument(actor, node.documentId);
+  let doc;
+  try {
+    doc = await getDocument(actor, node.documentId);
+  } catch (err) {
+    // Node still visible but its document is gone (soft-deleted separately) —
+    // redirect to the next document rather than a 404.
+    if (err instanceof ApiError && err.status === 404) {
+      const fallback = await findFallbackNodeAfterDelete(actor, node.id);
+      if (fallback) redirect(`/documentation/${await getSlugPath(actor, fallback.id)}`);
+      notFound();
+    }
+    throw err;
+  }
   // Readers see the published snapshot, not the editor's working copy — edits
   // only go live when the document is published again. Never-published docs
   // fall back to their current (working) content as a preview.

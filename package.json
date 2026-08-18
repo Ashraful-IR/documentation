@@ -16,6 +16,8 @@
     "test:fractional": "tsx scripts/test-fractional-index.ts",
     "test:tree": "tsx scripts/test-tree-flatten.ts",
     "test:navigation": "tsx scripts/test-navigation.ts",
+    "test:redirect": "tsx scripts/test-login-redirect.ts",
+    "test:fallback": "tsx scripts/test-delete-fallback.ts",
     "test:e2e": "tsx scripts/browser-smoke.ts"
   },
   "dependencies": {
