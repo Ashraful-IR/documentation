@@ -557,26 +557,17 @@ export async function findBySlugPath(
     ? sql`1=1`
     : sql`n.deleted_at IS NULL`;
 
-  // Walk up from leaf candidates via a recursive CTE. Only the leaf's slug
-  // is used as the initial filter — the rest of the chain is verified by
-  // walking parent pointers in SQL rather than loading every row into JS.
+  // Find leaf candidates matching the last slug, then verify the chain
+  // depth matches the slug count using the materialized ltree path.
   const rows = await db.execute(sql`
-    WITH RECURSIVE walk AS (
-      SELECT id, parent_id, slug, 1 AS depth
-      FROM documentation.navigation n
-      WHERE slug = ${lastSlug} AND ${deletedFilter}
-      UNION ALL
-      SELECT n.id, n.parent_id, n.slug, w.depth + 1
-      FROM documentation.navigation n
-      JOIN walk w ON n.id = w.parent_id
-      WHERE ${deletedFilter}
-    )
-    SELECT id, depth FROM walk
-    WHERE depth = ${slugs.length}
+    SELECT id FROM documentation.navigation n
+    WHERE slug = ${lastSlug}
+    AND ${deletedFilter}
+    AND nlevel(n.path) = ${slugs.length}
     LIMIT 1
   `);
 
-  const leafId = (rows as unknown as Array<{ id: string; depth: number }>)[0]?.id;
+  const leafId = (rows as unknown as Array<{ id: string }>)[0]?.id;
   if (!leafId) return null;
 
   const [node] = await db.select().from(navigation).where(eq(navigation.id, leafId)).limit(1);

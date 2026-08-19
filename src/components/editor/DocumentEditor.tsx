@@ -287,7 +287,7 @@ export function DocumentEditor({
                   <span className="text-[10px] font-semibold tracking-[0.25em] text-muted-foreground">DOC EDITOR</span>
                 </div>
 
-                <Input
+                {/* <Input
                   value={title}
                   onChange={(e) => {
                     setTitle(e.target.value);
@@ -299,8 +299,8 @@ export function DocumentEditor({
                   disabled={!canEdit}
                   placeholder="Untitled document"
                   aria-label="Document title"
-                  className="mb-8 h-auto border-0 bg-transparent p-0 text-2xl font-bold leading-tight tracking-tight text-zinc-900 shadow-none focus-visible:ring-0 disabled:opacity-100"
-                />
+                  className="mb-8 h-auto border-2 dark:border-red border-red-100 bg-gray p-2 text-2xl text-center font-bold text-zinc-900 shadow-none focus-visible:ring-0 disabled:opacity-100"
+                /> */}
 
                 {editor && <EditorContent editor={editor} className={documentBodyClass} />}
               </div>
