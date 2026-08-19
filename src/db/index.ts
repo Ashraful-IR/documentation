@@ -14,7 +14,7 @@ const globalForDb = globalThis as unknown as {
 function createClient() {
   const url = process.env.DATABASE_URL;
   if (!url) {
-    throw new Error("DATABASE_URL is not set — copy .env.example to .env.main");
+    throw new Error("DATABASE_URL is not set — copy .env.example to .env");
   }
   const client = postgres(url, {
     max: 10,
