@@ -13,6 +13,7 @@ export interface TreeMutations {
   deleteNode: (id: string, permanent?: boolean) => Promise<void>;
   restoreNode: (id: string) => Promise<void>;
   duplicateNode: (id: string) => Promise<void>;
+  emptyTrash: () => Promise<void>;
 }
 
 export function useNavigation(initialTree?: NavigationNode[]) {
@@ -61,6 +62,10 @@ export function useNavigation(initialTree?: NavigationNode[]) {
     },
     duplicateNode: async (id) => {
       await Api.duplicateNode(id);
+      await refresh();
+    },
+    emptyTrash: async () => {
+      await Api.emptyTrash();
       await refresh();
     },
   };
