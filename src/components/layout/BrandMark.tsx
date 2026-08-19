@@ -18,7 +18,7 @@ export function BrandMark({ className, size = "md" }: { className?: string; size
       src="/logo.png"
       alt=""
       width={700}
-      height={394}
+      height={395}
       className={cn("h-auto w-auto object-contain", HEIGHTS[size], className)}
       draggable={false}
     />
