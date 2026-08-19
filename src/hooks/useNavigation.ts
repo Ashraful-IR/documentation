@@ -15,9 +15,9 @@ export interface TreeMutations {
   duplicateNode: (id: string) => Promise<void>;
 }
 
-export function useNavigation() {
-  const [tree, setTree] = useState<NavigationNode[]>([]);
-  const [loading, setLoading] = useState(true);
+export function useNavigation(initialTree?: NavigationNode[]) {
+  const [tree, setTree] = useState<NavigationNode[]>(initialTree ?? []);
+  const [loading, setLoading] = useState(!initialTree);
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
@@ -33,8 +33,9 @@ export function useNavigation() {
   }, []);
 
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    // If we already have initial data from the server, skip the mount fetch.
+    if (!initialTree) void refresh();
+  }, [refresh, initialTree]);
 
   const mutations: TreeMutations = {
     refresh,
