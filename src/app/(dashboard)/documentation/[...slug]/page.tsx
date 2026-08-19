@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
-import { DocumentViewer } from "@/components/documents/DocumentViewer";
+import { LazyDocumentViewer } from "@/components/documents/LazyDocumentViewer";
 import { OnThisPage } from "@/components/documents/OnThisPage";
 import { extractHeadings } from "@/lib/content/headings";
 import { getSessionUser } from "@/lib/auth/actor";
@@ -65,9 +65,13 @@ export default async function DocumentationView({ params }: { params: Promise<{ 
   const node = await findBySlugPath(actor, slugs);
   if (!node) {
     // The page was deleted — show the next document instead of a 404.
-    const deleted = await findBySlugPath(actor, slugs, { includeDeleted: true });
+    // Fetch the tree once and reuse it for fallback computation.
+    const [deleted, tree] = await Promise.all([
+      findBySlugPath(actor, slugs, { includeDeleted: true }),
+      getTree(actor),
+    ]);
     if (deleted) {
-      const fallback = await findFallbackNodeAfterDelete(actor, deleted.id);
+      const fallback = await findFallbackNodeAfterDelete(actor, deleted.id, tree);
       if (fallback) redirect(`/documentation/${await getSlugPath(actor, fallback.id)}`);
     }
     notFound();
@@ -112,14 +116,22 @@ export default async function DocumentationView({ params }: { params: Promise<{ 
   }
 
   if (!node.documentId) notFound();
+
+  // Fetch document and tree in parallel — they are independent.
   let doc;
+  let tree;
   try {
-    doc = await getDocument(actor, node.documentId);
+    [doc, tree] = await Promise.all([
+      getDocument(actor, node.documentId),
+      getTree(actor),
+    ]);
   } catch (err) {
     // Node still visible but its document is gone (soft-deleted separately) —
     // redirect to the next document rather than a 404.
     if (err instanceof ApiError && err.status === 404) {
-      const fallback = await findFallbackNodeAfterDelete(actor, node.id);
+      // Tree may or may not have resolved; fetch if needed.
+      if (!tree) tree = await getTree(actor);
+      const fallback = await findFallbackNodeAfterDelete(actor, node.id, tree);
       if (fallback) redirect(`/documentation/${await getSlugPath(actor, fallback.id)}`);
       notFound();
     }
@@ -138,7 +150,6 @@ export default async function DocumentationView({ params }: { params: Promise<{ 
   const canEdit = actor.role === "ADMIN" || actor.role === "EDITOR";
 
   // Breadcrumbs and Previous/Next are derived from the navigation tree.
-  const tree = await getTree(actor);
   const paths = slugPathMap(tree);
   const path = findPath(tree, node.id);
   const crumbs = path.slice(0, -1);
@@ -149,6 +160,8 @@ export default async function DocumentationView({ params }: { params: Promise<{ 
   const prev = idx > 0 ? docs[idx - 1] : null;
   const next = idx >= 0 && idx < docs.length - 1 ? docs[idx + 1] : null;
 
+  // Fetch author in parallel with nothing else — but still separate since it
+  // depends on doc.updatedBy.
   let authorName: string | null = null;
   if (doc.updatedBy) {
     try {
@@ -208,7 +221,7 @@ export default async function DocumentationView({ params }: { params: Promise<{ 
 
           <div className="mt-8">
             {isPublished ? (
-              <DocumentViewer variant="reader" content={content} headings={tocItems} />
+              <LazyDocumentViewer variant="reader" content={content} headings={tocItems} />
             ) : (
               <div className="rounded-lg border border-dashed px-6 py-12 text-center text-sm text-muted-foreground">
                 This page hasn&apos;t been published yet. Its content is only visible in the editor until it is published.

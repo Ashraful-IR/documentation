@@ -3,7 +3,7 @@ import { asc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { users, type NewUser } from "@/db/schema";
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
-import { createSessionToken } from "@/lib/auth/session";
+import { createSessionToken } from "@/lib/auth/token";
 import { requirePermission, type Actor } from "@/lib/auth/permissions";
 import { ApiError } from "@/lib/http";
 

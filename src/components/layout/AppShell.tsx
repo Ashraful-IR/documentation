@@ -12,15 +12,15 @@ import { Button } from "@/components/ui/button";
 
 import { useNavigation } from "@/hooks/useNavigation";
 import { cn } from "@/lib/utils";
-import type { SessionUser } from "@/types";
+import type { NavigationNode, SessionUser } from "@/types";
 import { Sidebar } from "@/components/navigation/Sidebar";
 import { SearchCommand } from "./SearchCommand";
 import { UserMenu } from "./UserMenu";
 
-export function AppShell({ user, children }: { user: SessionUser; children: React.ReactNode }) {
+export function AppShell({ user, initialTree, children }: { user: SessionUser; initialTree?: NavigationNode[]; children: React.ReactNode }) {
   const router = useRouter();
   const { resolvedTheme, setTheme } = useTheme();
-  const { tree, loading, createNode, updateNode, moveNode, deleteNode, duplicateNode } = useNavigation();
+  const { tree, loading, createNode, updateNode, moveNode, deleteNode, duplicateNode } = useNavigation(initialTree);
   // Sidebar always starts open; collapsing only lasts for the current session.
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);

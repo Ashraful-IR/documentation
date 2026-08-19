@@ -539,29 +539,36 @@ export async function findBySlugPath(
 ): Promise<NavigationRow | null> {
   requirePermission(actor, PERMISSIONS.READ);
   if (slugs.length === 0) return null;
-  const rows = opts.includeDeleted
-    ? await db
-        .select({ id: navigation.id, parentId: navigation.parentId, slug: navigation.slug })
-        .from(navigation)
-    : await db
-        .select({ id: navigation.id, parentId: navigation.parentId, slug: navigation.slug })
-        .from(navigation)
-        .where(isNull(navigation.deletedAt));
-  const byId = new Map(rows.map((r) => [r.id, r]));
-  for (const row of rows) {
-    if (row.slug !== slugs[slugs.length - 1]) continue;
-    // Walk ancestors via parentId and compare with the requested chain.
-    const chain: string[] = [];
-    let cur: (typeof rows)[number] | undefined = row;
-    while (cur) {
-      chain.unshift(cur.slug);
-      cur = cur.parentId ? byId.get(cur.parentId) : undefined;
-    }
-    if (chain.length === slugs.length && chain.every((s, i) => s === slugs[i])) {
-      return (await db.select().from(navigation).where(eq(navigation.id, row.id)).limit(1))[0] ?? null;
-    }
-  }
-  return null;
+
+  const lastSlug = slugs[slugs.length - 1];
+  const deletedFilter = opts.includeDeleted
+    ? sql`1=1`
+    : sql`n.deleted_at IS NULL`;
+
+  // Walk up from leaf candidates via a recursive CTE. Only the leaf's slug
+  // is used as the initial filter — the rest of the chain is verified by
+  // walking parent pointers in SQL rather than loading every row into JS.
+  const rows = await db.execute(sql`
+    WITH RECURSIVE walk AS (
+      SELECT id, parent_id, slug, 1 AS depth
+      FROM documentation.navigation n
+      WHERE slug = ${lastSlug} AND ${deletedFilter}
+      UNION ALL
+      SELECT n.id, n.parent_id, n.slug, w.depth + 1
+      FROM documentation.navigation n
+      JOIN walk w ON n.id = w.parent_id
+      WHERE ${deletedFilter}
+    )
+    SELECT id, depth FROM walk
+    WHERE depth = ${slugs.length}
+    LIMIT 1
+  `);
+
+  const leafId = (rows as unknown as Array<{ id: string; depth: number }>)[0]?.id;
+  if (!leafId) return null;
+
+  const [node] = await db.select().from(navigation).where(eq(navigation.id, leafId)).limit(1);
+  return node ?? null;
 }
 
 /**
@@ -571,7 +578,11 @@ export async function findBySlugPath(
  * remains. Used to replace a deleted page's URL with a live destination
  * instead of a 404.
  */
-export async function findFallbackNodeAfterDelete(actor: Actor, deletedNodeId: string): Promise<NavigationRow | null> {
+export async function findFallbackNodeAfterDelete(
+  actor: Actor,
+  deletedNodeId: string,
+  precomputedTree?: NavigationNode[],
+): Promise<NavigationRow | null> {
   requirePermission(actor, PERMISSIONS.READ);
   const [row] = await db.select().from(navigation).where(eq(navigation.id, deletedNodeId)).limit(1);
   if (!row) return null;
@@ -587,7 +598,7 @@ export async function findFallbackNodeAfterDelete(actor: Actor, deletedNodeId: s
     }
   }
 
-  const tree = await getTree(actor);
+  const tree = precomputedTree ?? await getTree(actor);
 
   let fallbackId: string | null;
   if (!node.deletedAt) {
