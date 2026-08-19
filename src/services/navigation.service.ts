@@ -104,6 +104,52 @@ function toTree(rows: NavigationRow[]): NavigationNode[] {
   return build(null, false);
 }
 
+function toTrashTree(rows: NavigationRow[], titleMap?: Map<string, string>): NavigationNode[] {
+  const rowIdSet = new Set(rows.map((r) => r.id));
+  const byParent = new Map<string | null, NavigationRow[]>();
+  for (const row of rows) {
+    const list = byParent.get(row.parentId) ?? [];
+    list.push(row);
+    byParent.set(row.parentId, list);
+  }
+  for (const list of byParent.values()) {
+    list.sort((a, b) => (a.sortKey < b.sortKey ? -1 : a.sortKey > b.sortKey ? 1 : 0));
+  }
+
+  const resolveDisplayPath = (row: NavigationRow): string => {
+    if (!titleMap || !row.path) return row.title;
+    const parts = row.path.split(".").map((p) => p.replace(/_/g, "-"));
+    const titles = parts.map((id) => titleMap.get(id)).filter(Boolean);
+    return titles.length > 0 ? titles.join(" / ") : row.title;
+  };
+
+  const build = (row: NavigationRow): NavigationNode => {
+    const children = byParent.get(row.id) ?? [];
+    return {
+      id: row.id,
+      parentId: row.parentId,
+      type: row.type,
+      title: row.title,
+      slug: row.slug,
+      documentId: row.documentId,
+      linkUrl: row.linkUrl,
+      icon: row.icon,
+      description: row.description,
+      isVisible: row.isVisible,
+      sortKey: row.sortKey,
+      deletedAt: row.deletedAt ? row.deletedAt.toISOString() : null,
+      effectivelyHidden: false,
+      displayPath: resolveDisplayPath(row),
+      children: children.map(build),
+    };
+  };
+
+  // Roots of the trash view: deleted items whose parent is null OR parent is NOT in the deleted set (i.e. parent is alive or non-existent)
+  const roots = rows.filter((r) => r.parentId === null || !rowIdSet.has(r.parentId));
+  roots.sort((a, b) => (a.sortKey < b.sortKey ? -1 : a.sortKey > b.sortKey ? 1 : 0));
+  return roots.map(build);
+}
+
 const _getTreeUncached = async (actor: Actor): Promise<NavigationNode[]> => {
   requirePermission(actor, PERMISSIONS.READ);
   const rows = await db
@@ -129,12 +175,17 @@ export function getTree(actor: Actor): Promise<NavigationNode[]> {
 /** All nodes including deleted (used by trash views). */
 export async function getTrash(actor: Actor): Promise<NavigationNode[]> {
   requirePermission(actor, PERMISSIONS.READ);
+  const allRows = await db
+    .select({ id: navigation.id, title: navigation.title })
+    .from(navigation);
+  const titleMap = new Map(allRows.map((r) => [r.id, r.title]));
+
   const rows = await db
     .select()
     .from(navigation)
     .where(sql`${navigation.deletedAt} IS NOT NULL`)
     .orderBy(asc(navigation.sortKey));
-  return toTree(rows);
+  return toTrashTree(rows, titleMap);
 }
 
 async function findParentPath(tx: Tx, parentId: string | null): Promise<string | null> {
@@ -360,21 +411,69 @@ export async function restoreNode(actor: Actor, id: string): Promise<void> {
     const [node] = await tx.select().from(navigation).where(eq(navigation.id, id)).limit(1);
     if (!node) throw new ApiError(NAV_NOT_FOUND, "Navigation item not found", 404);
 
-    const restored = await tx.execute(sql`
-      UPDATE documentation.navigation
-      SET deleted_at = NULL, updated_by = ${actor.id}
-      WHERE id = ${id} OR path <@ ${node.path}::ltree
-      RETURNING id, document_id
+    let targetParentId = node.parentId;
+    let targetParentPath: string | null = null;
+
+    if (targetParentId) {
+      const [parent] = await tx.select().from(navigation).where(eq(navigation.id, targetParentId)).limit(1);
+      if (!parent || parent.deletedAt) {
+        // Parent is missing or still in trash — attach restored node to root
+        targetParentId = null;
+        targetParentPath = null;
+      } else {
+        targetParentPath = parent.path;
+      }
+    }
+
+    const newPath = nodePath(targetParentPath, node.id);
+
+    // Update the restored node
+    await tx
+      .update(navigation)
+      .set({
+        deletedAt: null,
+        parentId: targetParentId,
+        path: sql`${newPath}::ltree`,
+        updatedBy: actor.id,
+        updatedAt: new Date(),
+      })
+      .where(eq(navigation.id, id));
+
+    // Update and restore descendants
+    if (node.path !== newPath) {
+      await tx.execute(sql`
+        UPDATE documentation.navigation
+        SET deleted_at = NULL,
+            path = ${newPath}::ltree || subpath(path, nlevel(${node.path}::ltree)),
+            updated_at = now(),
+            updated_by = ${actor.id}
+        WHERE path <@ ${node.path}::ltree AND id <> ${id}
+      `);
+    } else {
+      await tx.execute(sql`
+        UPDATE documentation.navigation
+        SET deleted_at = NULL,
+            updated_at = now(),
+            updated_by = ${actor.id}
+        WHERE path <@ ${node.path}::ltree AND id <> ${id}
+      `);
+    }
+
+    // Collect all document ids in the restored subtree
+    const doomed = await tx.execute(sql`
+      SELECT id, document_id FROM documentation.navigation
+      WHERE id = ${id} OR path <@ ${newPath}::ltree
     `);
-    const docIds = (restored as unknown as Array<{ document_id: string | null }>)
-      .map((r) => r.document_id)
-      .filter((d): d is string => !!d);
+    const rows = doomed as unknown as Array<{ id: string; document_id: string | null }>;
+    const docIds = rows.map((r) => r.document_id).filter((d): d is string => !!d);
+
     if (docIds.length > 0) {
       await tx
         .update(documents)
         .set({ deletedAt: null, updatedAt: new Date() })
         .where(sql`${documents.id} IN (${sql.join(docIds.map((d) => sql`${d}`), sql`, `)})`);
     }
+
     await logAudit(actor, { action: AUDIT_ACTIONS.NAVIGATION_RESTORED, entityType: "navigation", entityId: id });
   });
 }
@@ -391,14 +490,59 @@ export async function hardDeleteNode(actor: Actor, id: string): Promise<void> {
       WHERE id = ${id} OR path <@ ${node.path}::ltree
     `);
     const rows = doomed as unknown as Array<{ id: string; document_id: string | null }>;
+    // Delete navigation rows first to satisfy the foreign key
+    // navigation.document_id → documents.id before removing documents.
+    if (rows.length > 0) {
+      await tx.delete(navigation).where(
+        sql`${navigation.id} IN (${sql.join(rows.map((r) => sql`${r.id}`), sql`, `)})`,
+      );
+    }
     const docIds = rows.map((r) => r.document_id).filter((d): d is string => !!d);
     if (docIds.length > 0) {
       await tx.delete(documents).where(sql`${documents.id} IN (${sql.join(docIds.map((d) => sql`${d}`), sql`, `)})`);
     }
-    await tx.delete(navigation).where(
-      sql`${navigation.id} IN (${sql.join(rows.map((r) => sql`${r.id}`), sql`, `)})`,
-    );
     await logAudit(actor, { action: "NAVIGATION_HARD_DELETED", entityType: "navigation", entityId: id });
+  });
+}
+
+/** Permanently deletes all items in trash and their associated documents. */
+export async function emptyTrash(actor: Actor): Promise<{ count: number }> {
+  requirePermission(actor, PERMISSIONS.NAV_DELETE);
+  return db.transaction(async (tx) => {
+    const doomed = await tx.execute(sql`
+      SELECT id, document_id FROM documentation.navigation
+      WHERE deleted_at IS NOT NULL
+    `);
+    const rows = doomed as unknown as Array<{ id: string; document_id: string | null }>;
+    if (rows.length === 0) {
+      await tx.delete(documents).where(sql`${documents.deletedAt} IS NOT NULL`);
+      return { count: 0 };
+    }
+
+    const ids = rows.map((r) => r.id);
+    const docIds = rows.map((r) => r.document_id).filter((d): d is string => !!d);
+
+    await tx.delete(navigation).where(
+      sql`${navigation.id} IN (${sql.join(ids.map((i) => sql`${i}`), sql`, `)})`,
+    );
+
+    if (docIds.length > 0) {
+      await tx.delete(documents).where(
+        sql`${documents.id} IN (${sql.join(docIds.map((d) => sql`${d}`), sql`, `)})`,
+      );
+    }
+
+    // Also clean up any soft-deleted documents without nav rows
+    await tx.delete(documents).where(sql`${documents.deletedAt} IS NOT NULL`);
+
+    await logAudit(actor, {
+      action: "TRASH_EMPTIED",
+      entityType: "navigation",
+      entityId: "trash",
+      metadata: { deletedCount: rows.length },
+    });
+
+    return { count: rows.length };
   });
 }
 

@@ -25,7 +25,10 @@ export function AppShell({ user, initialTree, children }: { user: SessionUser; i
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isSm, setIsSm] = useState(true);
+  const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
+
+  useEffect(() => { setMounted(true); }, []);
 
   // Track the breakpoint so the single open/close button knows which state
   // drives the sidebar on the current viewport.
@@ -107,6 +110,7 @@ export function AppShell({ user, initialTree, children }: { user: SessionUser; i
         )}
         <div className="flex-1" />
         <SearchCommand />
+        {mounted && (
         <TooltipProvider delayDuration={200}>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -123,6 +127,7 @@ export function AppShell({ user, initialTree, children }: { user: SessionUser; i
             <TooltipContent side="bottom">{resolvedTheme === "dark" ? "Light mode" : "Dark mode"}</TooltipContent>
           </Tooltip>
         </TooltipProvider>
+        )}
         <TooltipProvider delayDuration={200}>
           <Tooltip>
             <TooltipTrigger asChild>

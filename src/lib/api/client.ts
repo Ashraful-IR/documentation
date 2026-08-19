@@ -47,6 +47,7 @@ export const Api = {
   // navigation
   getTree: () => api<import("@/types").NavigationNode[]>("/api/navigation"),
   getTrash: () => api<import("@/types").NavigationNode[]>("/api/navigation/trash"),
+  emptyTrash: () => api<{ count: number }>("/api/navigation/trash", { method: "DELETE" }),
   createNode: (body: Record<string, unknown>) => api("/api/navigation", { method: "POST", body: JSON.stringify(body) }),
   updateNode: (id: string, body: Record<string, unknown>) => api(`/api/navigation/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
   deleteNode: (id: string, permanent = false) => api(`/api/navigation/${id}${permanent ? "?permanent=true" : ""}`, { method: "DELETE" }),

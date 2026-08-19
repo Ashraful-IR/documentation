@@ -223,6 +223,10 @@ export async function softDeleteDocument(actor: Actor, id: string): Promise<void
     .where(eq(documents.id, id))
     .returning({ id: documents.id });
   if (!updated) throw new ApiError(DOC_NOT_FOUND, "Document not found", 404);
+  await db
+    .update(navigation)
+    .set({ deletedAt: new Date(), updatedAt: new Date(), updatedBy: actor.id })
+    .where(eq(navigation.documentId, id));
   await logAudit(actor, { action: AUDIT_ACTIONS.DOCUMENT_DELETED, entityType: "document", entityId: id });
 }
 
@@ -234,11 +238,16 @@ export async function restoreDocument(actor: Actor, id: string): Promise<void> {
     .where(eq(documents.id, id))
     .returning({ id: documents.id });
   if (!updated) throw new ApiError(DOC_NOT_FOUND, "Document not found", 404);
+  await db
+    .update(navigation)
+    .set({ deletedAt: null, updatedAt: new Date(), updatedBy: actor.id })
+    .where(eq(navigation.documentId, id));
   await logAudit(actor, { action: "DOCUMENT_RESTORED", entityType: "document", entityId: id });
 }
 
 export async function hardDeleteDocument(actor: Actor, id: string): Promise<void> {
   requirePermission(actor, PERMISSIONS.DELETE);
+  await db.delete(navigation).where(eq(navigation.documentId, id));
   await db.delete(documents).where(eq(documents.id, id));
   await logAudit(actor, { action: "DOCUMENT_HARD_DELETED", entityType: "document", entityId: id });
 }

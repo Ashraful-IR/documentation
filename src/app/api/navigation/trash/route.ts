@@ -10,3 +10,12 @@ export async function GET() {
     return handleError(err);
   }
 }
+
+export async function DELETE() {
+  try {
+    const actor = await requireActor();
+    return ok(await nav.emptyTrash(actor));
+  } catch (err) {
+    return handleError(err);
+  }
+}

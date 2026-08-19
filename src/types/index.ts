@@ -19,6 +19,7 @@ export interface NavigationNode {
   isVisible: boolean;
   sortKey: string;
   deletedAt: string | null;
+  displayPath?: string | null;
   children: NavigationNode[];
   /** True when the item itself or an ancestor is hidden. */
   effectivelyHidden: boolean;
