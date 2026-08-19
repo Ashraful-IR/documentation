@@ -149,6 +149,11 @@ export default async function DocumentationView({ params }: { params: Promise<{ 
 
   const canEdit = actor.role === "ADMIN" || actor.role === "EDITOR";
 
+  // Kick off author fetch now — we'll do synchronous tree math while it runs.
+  const authorPromise = doc.updatedBy
+    ? getUserById(doc.updatedBy).then((u) => u.name).catch(() => null)
+    : Promise.resolve(null);
+
   // Breadcrumbs and Previous/Next are derived from the navigation tree.
   const paths = slugPathMap(tree);
   const path = findPath(tree, node.id);
@@ -160,17 +165,9 @@ export default async function DocumentationView({ params }: { params: Promise<{ 
   const prev = idx > 0 ? docs[idx - 1] : null;
   const next = idx >= 0 && idx < docs.length - 1 ? docs[idx + 1] : null;
 
-  // Fetch author in parallel with nothing else — but still separate since it
-  // depends on doc.updatedBy.
-  let authorName: string | null = null;
-  if (doc.updatedBy) {
-    try {
-      const u = await getUserById(doc.updatedBy);
-      authorName = u.name;
-    } catch {
-      authorName = null;
-    }
-  }
+  // Now await the author result — it has been running in parallel with the
+  // synchronous tree computations above.
+  const authorName = await authorPromise;
 
   return (
     <div className="min-h-full">

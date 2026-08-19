@@ -104,7 +104,7 @@ function toTree(rows: NavigationRow[]): NavigationNode[] {
   return build(null, false);
 }
 
-export async function getTree(actor: Actor): Promise<NavigationNode[]> {
+const _getTreeUncached = async (actor: Actor): Promise<NavigationNode[]> => {
   requirePermission(actor, PERMISSIONS.READ);
   const rows = await db
     .select()
@@ -112,6 +112,18 @@ export async function getTree(actor: Actor): Promise<NavigationNode[]> {
     .where(isNull(navigation.deletedAt))
     .orderBy(asc(navigation.sortKey));
   return toTree(rows);
+};
+
+const _treeCache = new Map<string, Promise<NavigationNode[]>>();
+
+/** Per-request cached tree — deduplicates layout + page calls with the same actor. */
+export function getTree(actor: Actor): Promise<NavigationNode[]> {
+  const key = actor.id;
+  const cached = _treeCache.get(key);
+  if (cached) return cached;
+  const p = _getTreeUncached(actor).finally(() => _treeCache.delete(key));
+  _treeCache.set(key, p);
+  return p;
 }
 
 /** All nodes including deleted (used by trash views). */
