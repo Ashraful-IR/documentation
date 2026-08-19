@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "env-cmd -f .env.dev next dev",
-    "build": "env-cmd -f .env.main next build",
-    "start": "env-cmd -f .env.main next start",
+    "build": " next build",
+    "start": " next start",
     "lint": "eslint",
     "db:start": "bash scripts/db.sh start",
     "db:stop": "bash scripts/db.sh stop",
