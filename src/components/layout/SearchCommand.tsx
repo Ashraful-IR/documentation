@@ -80,15 +80,15 @@ export function SearchCommand() {
     <>
       <Button
         variant="outline"
-        className="w-9 justify-start gap-2 text-muted-foreground sm:w-56 md:w-64"
+        className="w-9 justify-start gap-2 text-muted-foreground sm:w-70 md:w-100"
         onClick={() => setOpen(true)}
         aria-label="Search"
       >
         <Search className="size-3.5 shrink-0" />
         <span className="hidden flex-1 text-left text-sm sm:inline">Search documentation…</span>
-        <kbd className="pointer-events-none hidden rounded border bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground lg:inline">
+        {/* <kbd className="pointer-events-none hidden rounded border bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground lg:inline">
           ⌘K
-        </kbd>
+        </kbd> */}
       </Button>
       <CommandDialog open={open} onOpenChange={setOpen}>
         <Command>

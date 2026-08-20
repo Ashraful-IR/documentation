@@ -89,7 +89,7 @@ export function AppShell({ user, initialTree, children }: { user: SessionUser; i
           <span className="hidden text-md font-semibold tracking-tight text-text-primary md:inline">Cockpit GLM</span>
         </Link>
         {user.role === "ADMIN" && (
-          <div className="ml-3 hidden items-center gap-0.5 border-l border-border pl-3 md:flex">
+          <div className="ml-30 hidden items-center gap-0.5 border-l border-border pl-3 md:flex">
             <Button
               variant="ghost"
               size="sm"
