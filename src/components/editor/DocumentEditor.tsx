@@ -58,6 +58,7 @@ export function DocumentEditor({
   const [draftPrompt, setDraftPrompt] = useState<{ kind: "unchanged" | "conflict" } | null>(null);
   const [zoom, setZoom] = useState(100);
   const [pageHeight, setPageHeight] = useState(0);
+  const [viewportWidth, setViewportWidth] = useState(0);
   const pageRef = useRef<HTMLDivElement>(null);
 
   const draftKey = STORAGE_KEYS.editorDraft(documentId);
@@ -214,6 +215,14 @@ export function DocumentEditor({
     return () => ro.disconnect();
   }, []);
 
+  // Track viewport width so the paper container can cap at the screen width.
+  useEffect(() => {
+    const update = () => setViewportWidth(window.innerWidth);
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+
   function handleDraftChoice(choice: DraftRecoveryChoice) {
     setDraftPrompt(null);
     if (choice === "draft") {
@@ -269,15 +278,15 @@ export function DocumentEditor({
 
       {/* Editor workspace — theme canvas around the paper */}
       <div className="min-h-0 flex-1 overflow-auto bg-muted">
-        <div className="flex min-h-full justify-center px-6 py-10">
+        <div className="flex min-h-full justify-center px-2 py-4 sm:px-6 sm:py-10">
           <div
-            className="relative shrink-0"
-            style={{ width: PAPER_WIDTH * scale, height: Math.max(pageHeight * scale, 1) }}
+            className="relative shrink-0 overflow-hidden max-w-full"
+            style={{ width: Math.min(PAPER_WIDTH * scale, (viewportWidth || PAPER_WIDTH * scale) - 16), height: Math.max(pageHeight * scale, 1) }}
           >
             {/* White paper page */}
             <div
               ref={pageRef}
-              className="absolute left-0 top-0 bg-white text-zinc-900 shadow-2xl"
+              className="absolute left-0 top-0 bg-white text-zinc-900 shadow-2xl origin-top-left"
               style={{ width: PAPER_WIDTH, transform: `scale(${scale})`, transformOrigin: "top left" }}
             >
               <div className="px-16 py-14">

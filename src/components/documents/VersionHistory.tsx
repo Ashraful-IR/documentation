@@ -86,7 +86,7 @@ export function VersionHistory({ documentId, currentVersion, triggerClassName }:
             <History className="size-3.5" /> History
           </Button>
         </SheetTrigger>
-        <SheetContent className="w-80 sm:w-96">
+        <SheetContent className="w-full sm:w-80 md:w-96">
           <SheetHeader>
             <SheetTitle>Version history</SheetTitle>
           </SheetHeader>

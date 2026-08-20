@@ -123,7 +123,7 @@ export default function TrashPage() {
   const hiddenRows = flattenDeleted(hidden.filter((n) => !n.isVisible || n.effectivelyHidden));
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-8 py-10">
+    <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-8 sm:py-10">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Trash & hidden</h1>
@@ -203,7 +203,7 @@ export default function TrashPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex w-full items-center gap-2 sm:w-auto">
                       <Button
                         variant="outline"
                         size="sm"
@@ -216,7 +216,8 @@ export default function TrashPage() {
                         ) : (
                           <RotateCcw className="size-3.5" />
                         )}
-                        Restore
+                        <span className="hidden sm:inline">Restore</span>
+                        <span className="sm:hidden">Undo</span>
                       </Button>
                       <Button
                         variant="ghost"
@@ -230,7 +231,8 @@ export default function TrashPage() {
                         ) : (
                           <Trash2 className="size-3.5" />
                         )}
-                        Delete permanently
+                        <span className="hidden sm:inline">Delete permanently</span>
+                        <span className="sm:hidden">Delete</span>
                       </Button>
                     </div>
                   </li>

@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 export default function DocumentationLoading() {
   return (
     <div className="min-h-full">
-      <div className="flex w-full items-start gap-8 px-8 py-10">
+      <div className="flex w-full items-start gap-4 px-4 py-6 sm:gap-6 sm:px-6 sm:py-8 lg:gap-8 lg:px-8 lg:py-10">
         {/* Center column — mirrors the article area */}
         <div className="min-w-0 flex-1">
           <div className="mx-auto w-full max-w-[820px]">
@@ -74,9 +74,9 @@ export default function DocumentationLoading() {
             </div>
 
             {/* Prev/Next navigation skeleton */}
-            <div className="mt-12 flex items-stretch justify-between gap-4 border-t pt-6">
-              <Skeleton className="h-16 w-[45%] rounded-lg" />
-              <Skeleton className="h-16 w-[45%] rounded-lg" />
+            <div className="mt-8 flex flex-col gap-3 border-t pt-6 sm:mt-12 sm:flex-row sm:items-stretch sm:justify-between sm:gap-4">
+              <Skeleton className="h-16 w-full rounded-lg sm:w-[45%]" />
+              <Skeleton className="h-16 w-full rounded-lg sm:w-[45%]" />
             </div>
           </div>
         </div>

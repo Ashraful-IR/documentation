@@ -44,13 +44,13 @@ export default function AuditPage() {
   const end = Math.min(page * PAGE_SIZE, total);
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-8 py-10">
+    <div className="mx-auto w-full max-w-4xl px-4 py-6 sm:px-8 sm:py-10">
       <h1 className="text-2xl font-semibold tracking-tight">Audit log</h1>
       <p className="mt-1 text-sm text-muted-foreground">Every mutating action, in order.</p>
 
       <div className="mt-6 overflow-hidden rounded-lg border">
         {loading ? (
-          <div className="space-y-2 p-4">
+          <div className="space-y-2 p-3 sm:p-4">
             {[...Array(8)].map((_, i) => (
               <Skeleton key={i} className="h-8 w-full" />
             ))}
@@ -92,7 +92,7 @@ export default function AuditPage() {
 
         {/* Pagination footer */}
         {!loading && total > 0 && (
-          <div className="flex items-center justify-between gap-3 border-t px-4 py-2.5">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t px-3 py-2.5 sm:px-4 sm:flex-nowrap">
             <p className="text-xs text-muted-foreground">
               Showing <span className="font-medium text-foreground">{start}–{end}</span> of{" "}
               <span className="font-medium text-foreground">{total}</span> · Page{" "}

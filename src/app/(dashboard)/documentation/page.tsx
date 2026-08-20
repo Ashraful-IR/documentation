@@ -15,10 +15,10 @@ export default async function DocumentationLanding() {
   // Viewers land on a welcome screen; admins/editors keep the management landing.
   if (user.role === "VIEWER") {
     return (
-      <div className="flex min-h-full flex-col items-center justify-center px-8 py-16 text-center">
+      <div className="flex min-h-full flex-col items-center justify-center px-4 py-10 text-center sm:px-8 sm:py-16">
         <p className="text-lg font-medium uppercase tracking-[0.2em] text-muted-foreground">Welcome to</p>
         <BrandMark size="lg" className="mt-6 h-14" />
-        <h1 className="mt-6 text-5xl font-semibold tracking-tight">Cockpit GLM</h1>
+        <h1 className="mt-6 text-3xl font-semibold tracking-tight sm:text-5xl">Cockpit GLM</h1>
         <p className="mt-4 max-w-lg text-base leading-relaxed text-muted-foreground">
           Explore the documentation to learn how the platform works — browse the guides and references from
           the sidebar to get started.
@@ -31,7 +31,7 @@ export default async function DocumentationLanding() {
   const roots = tree.filter((n) => n.parentId === null);
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-8 py-14">
+    <div className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-8 sm:py-14">
       <div className="mb-8 flex items-center gap-3">
         <BrandMark size="lg" />
         <div>
@@ -50,7 +50,7 @@ export default async function DocumentationLanding() {
           </p>
         </div>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
           {roots.map((node) => {
             const href =
               node.type === "LINK" ? node.linkUrl ?? "#" : `/documentation/${node.slug}`;

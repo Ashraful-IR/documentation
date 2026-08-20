@@ -18,7 +18,7 @@ export default function SettingsPage() {
   if (!user) return null;
 
   return (
-    <div className="mx-auto w-full max-w-2xl space-y-6 px-8 py-10">
+    <div className="mx-auto w-full max-w-2xl space-y-6 px-4 py-6 sm:px-8 sm:py-10">
       <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
 
       <Card>

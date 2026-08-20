@@ -152,9 +152,9 @@ export function DocumentViewer({
 
   return (
     <div className="min-h-full bg-muted">
-      <div className="flex justify-center px-6 py-10">
-        <article className="w-[820px] shrink-0 bg-white text-zinc-900 shadow-2xl">
-          <div className="px-16 py-14">
+      <div className="flex justify-center px-2 py-4 sm:px-6 sm:py-10">
+        <article className="w-full max-w-[820px] shrink-0 bg-white text-zinc-900 shadow-2xl">
+          <div className="px-6 py-8 sm:px-10 sm:py-10 md:px-16 md:py-14">
             {/* Page header — same chrome as the editor */}
             <div className="mb-10 flex items-center justify-between">
               <span className="text-[11px] font-medium tracking-wide text-muted-foreground">Documentation Platform</span>

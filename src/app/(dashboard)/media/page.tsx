@@ -59,8 +59,8 @@ export default function MediaPage() {
   const isImage = (mime: string) => mime.startsWith("image/");
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-8 py-10">
-      <div className="flex items-center justify-between">
+    <div className="mx-auto w-full max-w-4xl px-4 py-6 sm:px-8 sm:py-10">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Media</h1>
           <p className="mt-1 text-sm text-muted-foreground">Images and files stored locally. Max 20 MB.</p>
@@ -81,7 +81,7 @@ export default function MediaPage() {
       </div>
 
       {loading ? (
-        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
           {[...Array(6)].map((_, i) => (
             <Skeleton key={i} className="h-32 w-full" />
           ))}
@@ -91,7 +91,7 @@ export default function MediaPage() {
           No files yet. Upload an image to use in your documents.
         </div>
       ) : (
-        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
           {items.map((item) => (
             <a
               key={item.id}

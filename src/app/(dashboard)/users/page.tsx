@@ -47,7 +47,7 @@ export default function UsersPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-8 py-10">
+    <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-8 sm:py-10">
       <h1 className="text-2xl font-semibold tracking-tight">Users</h1>
       <p className="mt-1 text-sm text-muted-foreground">
         Manage roles. Editors can write and publish; viewers can only read.
@@ -58,8 +58,8 @@ export default function UsersPage() {
           <Skeleton className="h-16 w-full" />
         ) : (
           users.map((u) => (
-            <div key={u.id} className="flex items-center gap-3 rounded-lg border p-3">
-              <Avatar className="size-8">
+            <div key={u.id} className="flex flex-wrap items-center gap-3 rounded-lg border p-3">
+              <Avatar className="size-8 shrink-0">
                 <AvatarFallback className="text-[10px]">
                   {u.name.split(/\s+/).map((p) => p[0]).slice(0, 2).join("").toUpperCase()}
                 </AvatarFallback>
@@ -68,17 +68,19 @@ export default function UsersPage() {
                 <p className="truncate text-sm font-medium">{u.name}</p>
                 <p className="truncate text-xs text-muted-foreground">{u.email}</p>
               </div>
-              <Badge variant="secondary" className="text-[10px]">{u.role}</Badge>
-              <Select value={u.role} onValueChange={(v) => void changeRole(u.id, v as UserRow["role"])}>
-                <SelectTrigger className="w-32" aria-label={`Role for ${u.name}`}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ADMIN">Admin</SelectItem>
-                  <SelectItem value="EDITOR">Editor</SelectItem>
-                  <SelectItem value="VIEWER">Viewer</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="text-[10px]">{u.role}</Badge>
+                <Select value={u.role} onValueChange={(v) => void changeRole(u.id, v as UserRow["role"])}>
+                  <SelectTrigger className="w-28 sm:w-32" aria-label={`Role for ${u.name}`}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ADMIN">Admin</SelectItem>
+                    <SelectItem value="EDITOR">Editor</SelectItem>
+                    <SelectItem value="VIEWER">Viewer</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           ))
         )}

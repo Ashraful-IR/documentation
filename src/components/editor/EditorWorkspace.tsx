@@ -102,7 +102,7 @@ export function EditorWorkspace({
   return (
     <div className="flex h-full flex-col">
       {/* App bar — theme-aware, above the editor toolbar */}
-      <div className="flex h-11 shrink-0 items-center gap-5 border-b px-10">
+      <div className="flex h-11 shrink-0 items-center gap-2 border-b px-3 sm:gap-3 sm:px-6 md:gap-5 md:px-10">
         <Button asChild size="sm" className="gap-2 rounded-md border-2">
           <Link href={backHref}>
             <ArrowLeft className="size-3.5" /> Back
@@ -119,7 +119,8 @@ export function EditorWorkspace({
           disabled={savingVersion || publishing}
         >
           {savingVersion ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />}
-          Save version
+          <span className="hidden sm:inline">Save version</span>
+          <span className="sm:hidden">Save</span>
         </Button>
         <Button
           type="button"
@@ -129,15 +130,16 @@ export function EditorWorkspace({
           disabled={publishing || savingVersion}
         >
           {publishing ? <Loader2 className="size-3.5 animate-spin" /> : <Rocket className="size-3.5" />}
-          {publishing ? "Publishing…" : "Publish"}
+          <span className="hidden sm:inline">{publishing ? "Publishing…" : "Publish"}</span>
+          <span className="sm:hidden">{publishing ? "…" : "Publish"}</span>
         </Button>
-        <Badge variant={status === "PUBLISHED" ? "default" : "secondary"} className="text-[10px]">
+        <Badge variant={status === "PUBLISHED" ? "default" : "secondary"} className="hidden text-[10px] sm:inline-flex">
           {status}
         </Badge>
         {unpublished && (
           <Badge
             variant="outline"
-            className="border-amber-500/50 bg-amber-500/10 text-[10px] text-amber-600 dark:text-amber-400"
+            className="hidden border-amber-500/50 bg-amber-500/10 text-[10px] text-amber-600 dark:text-amber-400 sm:inline-flex"
             title="The published page still shows the previous version"
           >
             Unpublished changes

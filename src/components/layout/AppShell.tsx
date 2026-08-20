@@ -83,32 +83,32 @@ export function AppShell({ user, initialTree, children }: { user: SessionUser; i
   return (
     <div className="flex h-dvh flex-col">
       {/* Top bar — brand + admin pages on the left, search + theme/sign-out on the right */}
-      <header className="relative flex h-16 shrink-0 items-center gap-2 border-b bg-background/60 px-3 backdrop-blur-sm sm:px-4">
+      <header className="relative flex h-14 shrink-0 items-center gap-1.5 border-b bg-background/60 px-2 backdrop-blur-sm sm:h-16 sm:gap-2 sm:px-4">
         <Link href="/documentation" aria-label="Cockpit GLM home" className="flex items-center gap-2">
           <BrandMark size="sm" />
           <span className="hidden text-md font-semibold tracking-tight text-text-primary md:inline">Cockpit GLM</span>
         </Link>
         {user.role === "ADMIN" && (
-          <div className="ml-3 flex items-center gap-0.5 border-l border-border pl-140  ">
+          <div className="ml-3 hidden items-center gap-0.5 border-l border-border pl-3 md:flex">
             <Button
               variant="ghost"
               size="sm"
-              className="gap-1.5 text-md font-medium text-blue-400 hover:bg-primary/10 hover:text-primary"
+              className="gap-1.5 text-sm font-medium text-blue-400 hover:bg-primary/10 hover:text-primary"
               onClick={() => router.push("/users")}
             >
-              <Users className="size-4" /> Users
+              <Users className="size-4" /> <span className="hidden lg:inline">Users</span>
             </Button>
             <Button
               variant="ghost"
               size="sm"
-              className="gap-1.5 text-md font-medium text-blue-400 hover:bg-primary/10 hover:text-primary"
+              className="gap-1.5 text-sm font-medium text-blue-400 hover:bg-primary/10 hover:text-primary"
               onClick={() => router.push("/audit")}
             >
-              <ScrollText className="size-4" /> Audit log
+              <ScrollText className="size-4" /> <span className="hidden lg:inline">Audit log</span>
             </Button>
           </div>
         )}
-        <div className="flex-1" />
+        <div className="flex-1 min-w-0" />
         <SearchCommand />
         {mounted && (
         <TooltipProvider delayDuration={200}>

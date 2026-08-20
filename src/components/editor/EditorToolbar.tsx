@@ -96,7 +96,7 @@ function ToolbarButton({ label, onClick, active, disabled, children }: ToolbarBu
           aria-label={label}
           aria-pressed={active}
           className={cn(
-            "flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground",
+            "flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground sm:size-7",
             active && "bg-accent text-accent-foreground",
             disabled && "pointer-events-none opacity-40",
           )}
@@ -126,7 +126,7 @@ function DropdownTrigger({ label, children, className, ...props }: DropdownTrigg
       aria-label={label}
       {...props}
       className={cn(
-        "flex h-7 shrink-0 items-center gap-1 rounded-md px-2 text-xs text-foreground/90 transition-colors hover:bg-accent hover:text-accent-foreground",
+        "flex h-8 shrink-0 items-center gap-1 rounded-md px-2 text-xs text-foreground/90 transition-colors hover:bg-accent hover:text-accent-foreground sm:h-7",
         className,
       )}
     >
@@ -213,8 +213,8 @@ export function EditorToolbar({ editor, zoom, onZoomChange, status }: EditorTool
   return (
     <TooltipProvider delayDuration={200}>
       <div className="relative flex h-11 shrink-0 items-center border-b border-border bg-muted">
-        {/* Centered control group */}
-        <div className="flex w-full items-center justify-center gap-0.5 px-12">
+        {/* Centered control group — scrollable on small screens */}
+        <div className="flex w-full items-center justify-center gap-0.5 overflow-x-auto px-2 sm:px-6 md:px-12 scrollbar-none">
         {/* Zoom */}
         <ToolbarButton label="Zoom out" onClick={() => onZoomChange(clampZoom(zoom - 10))}>
           <ZoomOut className="size-4" />

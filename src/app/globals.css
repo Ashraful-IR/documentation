@@ -349,7 +349,10 @@
     border-radius: 8px;
     margin: 1em 0;
     overflow-x: auto;
-    padding: 14px 16px;
+    padding: 10px 12px;
+    @media (min-width: 640px) {
+      padding: 14px 16px;
+    }
     color: #e4e4e7;
     font-family: var(--font-geist-mono), ui-monospace, monospace;
     font-size: 13px;
@@ -379,6 +382,8 @@
     font-size: 0.9em;
     margin: 1em 0;
     width: 100%;
+    display: block;
+    overflow-x: auto;
   }
   .document-body th,
   .document-body td {
@@ -497,7 +502,10 @@
     border-radius: 8px;
     margin: 1em 0;
     overflow-x: auto;
-    padding: 14px 16px;
+    padding: 10px 12px;
+    @media (min-width: 640px) {
+      padding: 14px 16px;
+    }
     font-family: var(--font-geist-mono), ui-monospace, monospace;
     font-size: 13px;
     line-height: 1.6;
@@ -559,6 +567,8 @@
        longer overflow (the wrapper above is just a safety net). */
     table-layout: fixed;
     width: 100%;
+    display: block;
+    overflow-x: auto;
   }
   .reader-body th,
   .reader-body td {
@@ -689,5 +699,15 @@
 }
 *::-webkit-scrollbar-thumb:hover {
   background-color: var(--input);
+}
+
+/* Hide scrollbar but keep scroll functionality — used by the editor toolbar
+   on mobile so the controls are accessible via horizontal swipe. */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
 }
 

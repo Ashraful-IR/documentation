@@ -83,10 +83,10 @@ export default async function DocumentationView({ params }: { params: Promise<{ 
     const folderNode = findInTree(tree, node.id);
     const children = folderNode?.children ?? [];
     return (
-      <div className="mx-auto w-full max-w-3xl px-8 py-14">
+      <div className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-8 sm:py-14">
         <div className="mb-6 flex items-center gap-2">
           <Folder className="size-4 text-muted-foreground" />
-          <h1 className="text-2xl font-semibold tracking-tight">{node.title}</h1>
+          <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">{node.title}</h1>
         </div>
         <ul className="space-y-2">
           {children.map((child) => (
@@ -171,12 +171,12 @@ export default async function DocumentationView({ params }: { params: Promise<{ 
 
   return (
     <div className="min-h-full">
-      <div className="flex w-full items-start gap-8 px-8 py-10">
+      <div className="flex w-full items-start gap-4 px-4 py-6 sm:gap-6 sm:px-6 sm:py-8 lg:gap-8 lg:px-8 lg:py-10">
         {/* Center column — the article is centered (max-w-[820px]) inside the
             space between the sidebar and the right TOC, so the gap to each
             panel stays equal at every viewport width. */}
         <div className="min-w-0 flex-1">
-          <div className="mx-auto w-full max-w-[820px]">
+          <div className="mx-auto w-full max-w-[820px] px-2 sm:px-0">
           <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
             <Link href="/documentation" className="flex items-center gap-1 transition-colors hover:text-foreground">
               <Home className="size-3.5" /> Home
@@ -196,7 +196,7 @@ export default async function DocumentationView({ params }: { params: Promise<{ 
             <span className="font-medium text-foreground">{node.title}</span>
           </nav>
 
-          <h1 className="mt-4 text-3xl font-bold tracking-tight">{isPublished ? (doc.publishedTitle ?? doc.title) : node.title}</h1>
+          <h1 className="mt-4 text-2xl font-bold tracking-tight sm:text-3xl">{isPublished ? (doc.publishedTitle ?? doc.title) : node.title}</h1>
 
           <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
             {isPublished ? (
@@ -228,9 +228,9 @@ export default async function DocumentationView({ params }: { params: Promise<{ 
 
           {/* Child pages — separate documents/folders attached under this one */}
           {childPages.length > 0 && (
-            <section className="mt-12">
+            <section className="mt-8 sm:mt-12">
               <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Child pages</h2>
-              <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+              <ul className="mt-3 grid gap-2 grid-cols-1 sm:grid-cols-2">
                 {childPages.map((child) => {
                   const Icon = child.type === "FOLDER" ? Folder : child.type === "LINK" ? Link2 : FileText;
                   const href =
@@ -260,11 +260,11 @@ export default async function DocumentationView({ params }: { params: Promise<{ 
           )}
 
           {(prev || next) && (
-            <div className="mt-12 flex items-stretch justify-between gap-4 border-t pt-6">
+            <div className="mt-8 flex flex-col gap-3 border-t pt-6 sm:mt-12 sm:flex-row sm:items-stretch sm:justify-between sm:gap-4">
               {prev ? (
                 <Link
                   href={`/documentation/${paths.get(prev.id) ?? prev.slug}`}
-                  className="group flex max-w-[45%] flex-col gap-1 rounded-lg border p-4 transition-colors hover:bg-accent/50"
+                  className="group flex max-w-full flex-col gap-1 rounded-lg border p-3 transition-colors hover:bg-accent/50 sm:max-w-[45%] sm:p-4"
                 >
                   <span className="flex items-center gap-1 text-xs text-muted-foreground">
                     <ArrowLeft className="size-3" /> Previous
@@ -277,7 +277,7 @@ export default async function DocumentationView({ params }: { params: Promise<{ 
               {next ? (
                 <Link
                   href={`/documentation/${paths.get(next.id) ?? next.slug}`}
-                  className="group ml-auto flex max-w-[45%] flex-col items-end gap-1 rounded-lg border p-4 text-right transition-colors hover:bg-accent/50"
+                  className="group flex max-w-full flex-col items-end gap-1 rounded-lg border p-3 text-right transition-colors hover:bg-accent/50 sm:ml-auto sm:max-w-[45%] sm:p-4"
                 >
                   <span className="flex items-center gap-1 text-xs text-muted-foreground">
                     Next <ArrowRight className="size-3" />
