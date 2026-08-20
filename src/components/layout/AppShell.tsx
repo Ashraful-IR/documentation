@@ -16,6 +16,7 @@ import type { NavigationNode, SessionUser } from "@/types";
 import { Sidebar } from "@/components/navigation/Sidebar";
 import { SearchCommand } from "./SearchCommand";
 import { UserMenu } from "./UserMenu";
+import { Footer } from "./Footer";
 
 export function AppShell({ user, initialTree, children }: { user: SessionUser; initialTree?: NavigationNode[]; children: React.ReactNode }) {
   const router = useRouter();
@@ -214,6 +215,8 @@ export function AppShell({ user, initialTree, children }: { user: SessionUser; i
 
         <main className="min-w-0 flex-1 overflow-y-auto">{children}</main>
       </div>
+
+      <Footer />
     </div>
   );
 }
